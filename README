@@ -1,0 +1,110 @@
+MT-EQuAl: a Toolkit for Human Assessment of Machine Translation Output
+
+Copyright 2014, Christian Girardi (cgirardi@fbk.eu)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+OVERVIEW:
+-------------
+
+The annotation interface is created to carry out three annotation tasks, namely:
+− Task 1: Assessing automatic translation quality.
+− Task 2: Identification of errors in the automatic translations.
+− Task 2: Word alignment in the automatic translations.
+
+For more details about the task see the documentation on docs/ directory.
+
+To work with the interface, you must use one of the supported browsers: Chrome, Safari, Firefox.
+
+All code is available at: https://github.com/hltfbk/MT-EQuAl	
+
+
+INSTALLATION:
+---------------
+
+- Step 1: Install Apache
+Apache is a free open source software which runs over 50% of the world’s web servers.
+
+To install apache, open terminal and type in these commands:
+$ sudo apt-get update
+$ sudo apt-get install apache2
+
+That’s it. To check if Apache is installed, direct your browser to http://localhost/ and the page should display the words “It works!".
+
+- Step 2: Install MySQL
+MySQL is a powerful database management system used for organizing and retrieving data 
+
+To install MySQL, open terminal and type in these commands:
+$ sudo apt-get install mysql-server libapache2-mod-auth-mysql php5-mysql
+
+During the installation, MySQL will ask you to set a root password. If you miss the chance to set the password while the program is installing, it is very easy to set the password later from within the MySQL shell.
+
+Once you have installed MySQL, we should activate it with this command:
+$ sudo mysql_install_db
+
+Finish up by running the MySQL set up script:
+$ sudo /usr/bin/mysql_secure_installation
+
+The prompt will ask you for your current root password. Type it in.
+Then the prompt will ask you if you want to change the root password. Go ahead and choose N and move on to the next steps. 
+
+It’s easiest just to say Yes to all the options. At the end, MySQL will reload and implement the new changes.
+
+- Step 3: Install PHP
+PHP is an open source web scripting language that is widely use to build dynamic webpages. 
+
+To install PHP, open terminal and type in this command:
+$ sudo apt-get install php5 libapache2-mod-php5 php5-mcrypt
+
+After you answer yes to the prompt twice, PHP will install itself.
+
+It may also be useful to add php to the directory index, to serve the relevant php index files:
+$ sudo nano /etc/apache2/mods-enabled/dir.conf
+
+Add index.php to the beginning of index files. The page should now look like this:
+<IfModule mod_dir.c>
+       DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
+</IfModule>
+
+Install the MySQL module for php5, type:
+$ sudo apt-get install php5-mysql
+
+- Step 4: deploy MT-EQuAl code
+Unzip MT-EQuAl-1.0.zip or clone the Github repository in your Apache document root directory (for example /www/html/).
+Edit the file initdb.conf and change the value of DB_USER and DB_PASSWORD according your MySQL installation.
+
+If your web server is configured correctly, you should now find your MT-EQuAl application accessible at http://localhost/mtequal/.
+
+Congratulations! You now have MT-EQuAl stack on your machine!
+
+
+DATABASE SETUP:
+--------------------------
+
+- Create an empty MT-EQuAl database
+You will need the init_mtequal.db file located in the data/ directory and following these command:
+$ mysqladmin -u root -p<PASSWORD> create mtequal
+$ mysql -u root -p<PASSWORD> mtequal < data/init_mtequal.db
+ 
+In the same way it is possible to restore a previous dump of the database following these command:
+$ mysql -u root -p<PASSWORD> mtequal < data/dump/FILE.sql
+
+
+INPUT FILE FORMAT:
+-------------------
+The page admin.php allows to upload the sentences for a specific task. The format of this file must contain a three columns per line divided by a tabular space:
+- sentence ID;
+- language (en, ar, it, zh,...);
+- the sentence (using UTF8 encoding).
+
+See some examples in the directory data/input/.

@@ -1,0 +1,119 @@
+body { font-family:Arial, Helvetica, Sans-Serif; font-size:13px; margin:0px 20px;}
+a { text-decoration: none; }
+a:link {color:rgb(0, 0, 238);}      /* unvisited link */
+a:visited {color:rgb(0, 0, 238);}  /* visited link */
+a:hover {color:rgb(0, 0, 238);}  /* mouse over link */
+a:active {color:rgb(0, 0, 238);}  /* selected link */
+/* menu */
+#menu{ font-size:14px; margin:0px; padding:0px; list-style:none; color:#fff; line-height:45px; display:inline-block; float:left; z-index:20; }
+#menu a { color:#fff; text-decoration:none; }
+#menu > li {background:#172322 none repeat scroll 0 0; cursor:pointer; float:left; position:relative;padding:0px 10px;}
+#menu > li a:hover {color:#B0D730;}
+#menu .logo2 {background:transparent none repeat scroll 0% 0%; padding:0px; background-color:Transparent;}
+/* sub-menus*/
+#menu ul { padding:0px; margin:0px; display:block; display:inline;}
+#menu li ul {position:absolute; left:-10px; top:-2px; margin-top:45px; line-height:1px; background-color:#172322; color:#0395CC; /* for IE */ display:none; }
+#menu li:hover ul { display:block;}
+#menu li ul li{ display:block; margin:5px 20px; padding: 5px 0px;  border-top: dotted 1px #606060; list-style-type:none; }
+#menu li ul li:first-child { border-top: none; }
+#menu li ul li a { display:block; color:#0395DD; }
+#menu li ul li a:hover { color:#7FDDFE; }
+/* main submenu */
+#menu #main { left:0px; top:-10px; padding-top:20px; background-color:#7cb7e3; color:#fff; z-index:999;}
+/* task */
+.taskContainer div {background-color:#000; display:inline; padding:5px;}
+.taskContainer input[type="text"] {border:none;}
+.taskContainer img { vertical-align:middle;}
+/* corners*/
+#menu .corner_inset_left { position:absolute; top:0px; left:-12px;}
+#menu .corner_inset_right { position:absolute; top:0px; left:100px;}
+#menu .last { background:transparent none repeat scroll 0% 0%; margin:0px; padding:0px; border:none; position:relative; border:none; height:0px;}
+#menu .corner_left { position:absolute; left:0px; top:0px;}
+#menu .corner_right { position:absolute; left:163px; top:0px;}
+#menu .middle { position:absolute; left:18px; height: 20px; width: 146px; top:0px;}
+/*error types menu (task2) */
+#errortypes {
+    position: absolute;
+    background-color: #555;
+    color: #ffffff;
+    visibility: hidden;
+    border: 1px solid #000000;
+    z-index:9;
+    margin-bottom: 5px;
+    margin-left: 5px;
+	margin-right: 5px;
+    opacity: 100;
+}
+
+div.index {display: inline; 
+	position: fixed; 
+	top: 80px; 
+	right: 0px; 
+	width: 100%; 
+	height: 85%; 
+	border-top: solid #ddd 1px; 
+	box-shadow: 0px 5px 5px #888, 0px -2px 5px #888;
+	overflow:auto;
+	z-index: 1;
+}
+	
+div.error {background: #fff; z-index:300; position:fixed; top:45px; left:100px; border-left: solid 1px #000; border-bottom: solid 1px #666; padding: 3px; font-size: 16px; margin-bottom: 0px; border-radius: 0px 0px 0px 15px;}
+div.sentindex {display: cell; margin-left: 36px; width: 60px; text-align: right; vertical-align: top; padding-right: 4px; top: 10px}
+div.source {border: solid #bbb 1px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; padding-bottom: 8px; width: 575px; border-radius: 4px 4px 4px 4px;}
+div.reference {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; margin-top: 8px; padding-bottom: 10px;  width: 575px;}
+div.output {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 3px; margin-top: 8px; margin-right: 8px; width: 590px}
+
+div.head {border-top: solid #000 1px;}
+div.rtl {direction:rtl;}
+div.label {display: table-cell; white-space: nowrap; padding-top: 5	px; padding-right: 3px; text-align: right; width: 100px; font-size: 14px}
+div.labelref {display: table-cell; white-space: nowrap; padding-top: 5px; padding-right: 3px; text-align: right; width: 100px; font-size: 14px; padding-bottom: 9px; color: #888}
+div.check {display: inline-block; margin-top: 13px; padding-right: 10px; width: 11px; text-align: center; vertical-align: top}
+div.donebottom {float: right; background: #cde; right: 0px; bottom: -3px; display: inline-block; position: fixed; text-align: left; font-size: 14px; padding: 5px; margin-right: 40px; border: solid #999 1px; border-radius: 15px 15px 0px 0px; z-index: 1000}
+div.bglgreen {background: lightgreen; }
+div.log {bottom: 10px; right: 20px; display: block; position: fixed; font-size: 10px}
+div.debug {float: right; right: 0px; bottom: 30px; background: lightyellow; padding: 3px; border: solid #999 1px; display: inline; position: fixed}
+
+div.orangeborderb {display: inline-block; cursor:pointer; cursor: hand; border-bottom: solid orange 2px;}
+div.whiteborderb {display: inline-block; cursor:pointer; border-bottom: white;}
+div.orangebg {display: inline-block; cursor: pointer; cursor: hand; background: orange;}
+div.whitebg {display: inline-block; cursor:default; background: white;}
+
+div.token {height: 20px; display: inline-block; bottom: 5px}
+div.token {background: 20px; display: inline-block; bottom: 5px}
+
+td.black { background-color: black; }
+td.white { background-color: #ccc; }
+td.gray  { background-color: gray; }
+td.highlight  { background-color: #000; }
+td.blue {background-color: blue}
+td.yellow {background-color: lightyellow}
+td.red {background-color: red}
+
+div.container {
+	width: 100%;
+	display: table ;
+}
+
+div.row  {
+	display: table-row;
+}
+
+div.left {
+    width:150px;
+}
+
+div.right {
+    display: table-cell;
+    float: left;
+}
+
+div.cell {
+	display: table-cell;
+	vertical-align: top;
+}
+option.lineseparator { border-bottom: 2px solid #000; }
+    
+.nowhitespace { font-size: 0; }
+.nowhitespace > span { font-size: 16px; }
+
+
