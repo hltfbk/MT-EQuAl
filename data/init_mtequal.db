@@ -1,0 +1,168 @@
+-- MySQL dump 10.13  Distrib 5.1.60, for apple-darwin10.3.0 (i386)
+--
+-- Host: localhost    Database: mtequal
+-- ------------------------------------------------------
+-- Server version	5.1.60
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `annotation`
+--
+
+DROP TABLE IF EXISTS `annotation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `annotation` (
+  `sentence_num` int(100) NOT NULL,
+  `output_id` varchar(100) NOT NULL,
+  `user_id` int(10) NOT NULL,
+  `eval` int(4) NOT NULL DEFAULT '-1',
+  `evalids` text NOT NULL,
+  `evaltext` text NOT NULL,
+  `lasttime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`sentence_num`,`output_id`,`user_id`,`eval`),
+  KEY `sentence_num` (`sentence_num`,`output_id`,`user_id`),
+  KEY `eval` (`eval`),
+  KEY `lasttime` (`lasttime`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `comment`
+--
+
+DROP TABLE IF EXISTS `comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `comment` (
+  `sentence_num` int(100) NOT NULL,
+  `user_id` int(10) NOT NULL,
+  `comment` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`sentence_num`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `done`
+--
+
+DROP TABLE IF EXISTS `done`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `done` (
+  `sentence_num` int(100) NOT NULL,
+  `user_id` int(10) NOT NULL,
+  `completed` enum('Y','N') DEFAULT 'N',
+  `lasttime` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`sentence_num`,`user_id`),
+  KEY `sentence_num` (`sentence_num`,`user_id`),
+  KEY `user_id` (`user_id`),
+  KEY `completed` (`completed`),
+  KEY `lasttime` (`lasttime`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `log`
+--
+
+DROP TABLE IF EXISTS `log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `log` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) NOT NULL,
+  `query` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `error` varchar(4) NOT NULL,
+  `lasttime` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=195643 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sentence`
+--
+
+DROP TABLE IF EXISTS `sentence`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `sentence` (
+  `num` int(100) NOT NULL AUTO_INCREMENT,
+  `id` varchar(100) NOT NULL,
+  `lang` varchar(5) NOT NULL,
+  `type` varchar(20) NOT NULL,
+  `task_id` int(4) NOT NULL,
+  `text` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `linkto` varchar(100) DEFAULT NULL,
+  `lasttime` date NOT NULL,
+  PRIMARY KEY (`num`),
+  KEY `id` (`id`),
+  KEY `type` (`type`),
+  KEY `task_id` (`task_id`),
+  KEY `lang` (`lang`),
+  KEY `linkto` (`linkto`)
+) ENGINE=MyISAM AUTO_INCREMENT=87460 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `task`
+--
+
+DROP TABLE IF EXISTS `task`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `task` (
+  `id` int(4) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `type` enum('quality','errors','wordaligner') DEFAULT NULL,
+  `descr` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `randout` enum('Y','N') DEFAULT 'N',
+  `owner` int(10) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `owner` (`owner`)
+) ENGINE=MyISAM AUTO_INCREMENT=36 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) NOT NULL,
+  `password` blob,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `tasks` text NOT NULL,
+  `status` enum('admin','advisor','user','other') DEFAULT 'user',
+  `team` varchar(10) NOT NULL,
+  `activated` enum('Y','N') DEFAULT 'Y',
+  `registered` date NOT NULL,
+  `notes` text NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=45 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2014-07-15 14:48:31
