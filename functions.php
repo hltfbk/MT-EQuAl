@@ -766,7 +766,7 @@ function exportCSV ($userid) {
 				if (preg_match("/quality/i", $tasktype)) {
 					fwrite($fh,"ID\tlanguage_pair\tsystem\tquality_score\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
 				} else if (preg_match("/errors/i", $tasktype)) {
-					fwrite($fh,"ID\tlanguage_pair\tsystem\terror_type\terror_tok_IDs\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
+					fwrite($fh,"ID\tlanguage_pair\tsystem\terror_type\terror_tok_IDs\ttarget_tok_num\ttokenized_target_text\tsource_tok_num\tsource_text\n");
 				} else {
 					fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation\ttok_IDs\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
 				}	
@@ -860,7 +860,7 @@ function exportCSV ($userid) {
 							if ($row_annotation[3] > 1 && $strids == "") {
 								continue;
 							}
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". getTokensNum($row_annotation[6],$text)."\t$text\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". getTokensNum($row_annotation[6],$text)."\t".join(" ", getTokens(ereg_replace(".*_","", $row_annotation[6]), $text))."\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
 						} else {
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". getTokensNum($row_annotation[6],$text)."\t$text\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
 						}
@@ -1025,7 +1025,7 @@ function exportXML ($userid) {
 								}									
 							}
 							fwrite($fh,"    <target_text target_tok_num='".getTokensNum($row_annotation[6],$text)."'>".str_replace("\"","&quot;",stripslashes($text))."</target_text>\n");	
-							$tokens = getTokens($row_annotation[6], $text);
+							$tokens = getTokens(ereg_replace(".*_","",$row_annotation[6]), $text);
 						}
 						if (preg_match("/errors/i", $tasktype)) {
 							$label = "";
@@ -1102,8 +1102,18 @@ function exportXML ($userid) {
 									} 	
 								}
 								fwrite($fh,"        </error_span>\n");								
-							}
+							}							
 							fwrite($fh,"      </error>\n");
+							
+							#add tokens
+							$i=1;
+							fwrite($fh,"      <tokens>\n");
+							foreach ($tokens as $token) {
+								fwrite($fh,"        <token id='$i'>".$token."</token>\n");
+								$i++;
+							}
+							fwrite($fh,"      </tokens>\n");								
+							
 							
 							#fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". getTokensNum($row_annotation[6],$text)."\t$text\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
 						} else {

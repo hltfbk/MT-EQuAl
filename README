@@ -20,7 +20,7 @@ OVERVIEW:
 The annotation interface is created to carry out three annotation tasks, namely:
 − Task 1: Assessing automatic translation quality.
 − Task 2: Identification of errors in the automatic translations.
-− Task 2: Word alignment in the automatic translations.
+− Task 3: Word alignment in the automatic translations.
 
 For more details about the task see the documentation on docs/ directory.
 

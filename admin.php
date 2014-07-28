@@ -99,13 +99,13 @@ $(".ziplink").click(function (e) {
         }
 
         #tabs li {
+            cursor: pointer;
             float: left;
             margin: 0 .8em 0 0;
         }
 
         #tabs a {
-       		cursor: pointer;
-            position: relative;
+       		position: relative;
             background: #ddd;
             background-image: -webkit-gradient(linear, left top, left bottom, from(#eee), to(#ddd));
             background-image: -webkit-linear-gradient(top, #eee, #ddd);
@@ -244,31 +244,33 @@ $(".ziplink").click(function (e) {
 
 <?php
 include("menu.php");
-$panels = array("TASK","DATA","USER","ANNOTATION");
+if (isset($mysession) && !empty($mysession["status"]) && $mysession["status"] == "admin") {
+	$panels = array("TASK","DATA","USER","ANNOTATION","AGREEMENT");
 
-$current_pane="task";
-if (isset($section)) {
-	$current_pane=$section;
-}
+	$current_pane="task";
+	if (isset($section)) {
+		$current_pane=$section;
+	}
 ?>
 
 <div class=index><div class=row><div style='margin: 10px; display: inline-block'>
 <ul id="tabs">
 <?php
-foreach ($panels as $pane) {
-	if (strtolower($pane) == $current_pane) {
-	 	print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
-	} else {
-	 	print"<li><a href=\"admin.php?section=".strtolower($pane)."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
+	foreach ($panels as $pane) {
+		if (strtolower($pane) == $current_pane) {
+	 		print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
+		} else {
+		 	print"<li><a href=\"admin.php?section=".strtolower($pane)."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
+		}
 	}
-}
 ?>
 </ul>
 
-<div id="content">
 <?php
-include("admin_".$current_pane.".php");
+	print "<div id='content'>\n";
+	include("admin_".$current_pane.".php");
+	print "</div>";
+}
 ?>
-</div>
 </body>
 </html>
