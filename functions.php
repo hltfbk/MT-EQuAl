@@ -1004,7 +1004,7 @@ function exportXML ($userid) {
 					
 							$src_text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_source[1]));
 							if ($src_text != "") {
-								fwrite($fh,"  <source_text source_tok_num='".getTokensNum($row_source[0],$src_text)."'>".str_replace("\"","&quot;",stripslashes($src_text))."</source_text>\n");
+								fwrite($fh,"  <source_text source_tok_num='".getTokensNum($row_source[0],$src_text)."'>".xml_escape($src_text)."</source_text>\n");
 							}	
 						}	
 						if ($system_id != $row_annotation[2]) {
@@ -1024,8 +1024,18 @@ function exportXML ($userid) {
 									fwrite($fh,"    <comment>".preg_replace("/.+\t/","",$comments{$row_annotation[0]}) ."</comment>\n");
 								}									
 							}
-							fwrite($fh,"    <target_text target_tok_num='".getTokensNum($row_annotation[6],$text)."'>".str_replace("\"","&quot;",stripslashes($text))."</target_text>\n");	
+							fwrite($fh,"    <target_text target_tok_num='".getTokensNum($row_annotation[6],$text)."'>".xml_escape($text)."</target_text>\n");	
 							$tokens = getTokens(ereg_replace(".*_","",$row_annotation[6]), $text);
+							
+							#add tokens
+				$i=1;
+				fwrite($fh,"      <tokens>\n");
+				foreach ($tokens as $token) {
+					fwrite($fh,"        <token id='$i'>".xml_escape($token)."</token>\n");
+					$i++;
+				}
+				fwrite($fh,"      </tokens>\n");								
+				
 						}
 						if (preg_match("/errors/i", $tasktype)) {
 							$label = "";
@@ -1098,22 +1108,12 @@ function exportXML ($userid) {
 									if (preg_match('/-/',$id)) {
 										fwrite($fh,"/>\n");
 									} else {
-										fwrite($fh,">".$tokens[($id-1)]."</token>\n");
+										fwrite($fh,">".xml_escape($tokens[($id-1)])."</token>\n");
 									} 	
 								}
 								fwrite($fh,"        </error_span>\n");								
 							}							
 							fwrite($fh,"      </error>\n");
-							
-							#add tokens
-							$i=1;
-							fwrite($fh,"      <tokens>\n");
-							foreach ($tokens as $token) {
-								fwrite($fh,"        <token id='$i'>".$token."</token>\n");
-								$i++;
-							}
-							fwrite($fh,"      </tokens>\n");								
-							
 							
 							#fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". getTokensNum($row_annotation[6],$text)."\t$text\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
 						} else {
@@ -1125,6 +1125,7 @@ function exportXML ($userid) {
 						//saveLog("NO INTERCECTION: ". $row_annotation[1] ." ". $row[0] .": $query");
 					}
 				}
+							
 				if (mysql_num_rows($result_annotation) > 0) {
 					fwrite($fh,"  </system>\n</eval_item>\n");
 				}
@@ -1451,4 +1452,10 @@ function safe_query_OLD ($query = "") {
 }
 
 
+function xml_escape($s) {
+	$s = str_replace("&quot;","\"",$s);
+    $s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');
+    $s = htmlspecialchars($s, ENT_QUOTES, 'UTF-8', false);
+    return $s;
+}
 ?>
