@@ -32,8 +32,8 @@ if (isset($monitoring) && $monitoring == 1) {
 <?php
 print "<div class=donebottom>";
 if ($sentidx > 0) {
-	$prevpage = "wordaligner.php?id=".($id-1)."&sentidx=".($sentidx-1);
-	$nextpage = "wordaligner.php?id=".($id+1)."&sentidx=".($sentidx+1);
+	$prevpage = "wordaligner.php?id=".($id-1)."&taskid=$taskid&sentidx=".($sentidx-1);
+	$nextpage = "wordaligner.php?id=".($id+1)."&taskid=$taskid&sentidx=".($sentidx+1);
 	print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
 }
 print "<button style='width: 170' id=done name=done onclick=\"javascript:doneAndIndex('$id','$userid',this);\" disabled></button> &nbsp;";
@@ -45,14 +45,13 @@ if (empty($mysession["status"])) {
 	print "<script>window.open('index.php','_self');</script>";
 }
 
-if ($taskid > 0 && isset($id) && isset($userid)) {
-	
+if ($taskid > 0 && isset($id) && isset($userid)) {	
 	$hash_target = getSystemSentences($id,$taskid);
 	$i = 1;
 	$checked = 0;
 	print "<div style='width: 100%; position: relative; height: 100%; margin-top:0px; margin-left: -28px;  padding-right: 47px; margin-bottom: auto; overflow-y: auto;'>";
 	if (count($hash_target) > 0) {
-	$sentence_hash = getSentence($id);
+	$sentence_hash = getSentence($id,$taskid);
 	while (list ($sentence_id, $sentence_item) = each($hash_target)) {
 		$errors = getErrors($id, $sentence_id, $userid);
 		
@@ -98,13 +97,25 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		print "</div></table>";
 		//end cell (output+comment)
 		
+		//print "###### $id, $sentence_id, $userid";
+		$hash_eval = getErrors($id, $sentence_id, $userid);
+		
 		//start matrix		
 		echo "<script type=\"text/Javascript\">\nvar sourceString=\"". preg_replace('/\"/',"&quot;", join(" ",getTokens($sentence_hash["source"][0], trim($sentence_hash["source"][1])))) ."\";\n".
 			"var targetString=\"".preg_replace('/\"/',"&quot;", join(" ",getTokens($sentence_item[0], trim($sentence_item[1]))))."\";\n";
-		//echo "var initialSureAlignments=\"".getAlignment($id,$sentence_id,$userid,"1")."\";\n";
-		//echo "var initialPossAlignments=\"".getAlignment($id,$sentence_id,$userid,"2")."\";\n";
-		echo "var initialSureAlignments=\"1-6 2-0\";\n";
-		echo "var initialPossAlignments=\"0-6\";\n";
+		if (isset($hash_eval[0])) {		
+			echo "var initialPossAlignments=\"".$hash_eval[0][0]."\";\n";
+		} else {	
+			echo "var initialPossAlignments=\"\";\n";
+		}
+		if (isset($hash_eval[1])) {
+			echo "var initialSureAlignments=\"".$hash_eval[1][0]."\";\n";
+		} else {	
+			echo "var initialSureAlignments=\"\";\n";
+		}
+		
+		//echo "var initialSureAlignments=\"1-6 2-0\";\n";
+		//echo "var initialPossAlignments=\"0-6\";\n";
 	
 ?>
 	var disagreed_alignments_type1="";
@@ -122,7 +133,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	// indicates whether to switch the view from the source being 
 	// along top (default) or the target on top (transposed).
 	// The results still keep the same source / target names.
-	var viewTransposed =  true;
+	var viewTransposed = false;
 
 
 	// read in the values for this sentence pair
@@ -141,23 +152,14 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	var initialSourceHighlights = "${sourceHighlights}";
 	var initialTargetHighlights = "${targetHighlights}";
 
+	var initialDisagreedAlignmentsType1 = "";
+	var initialDisagreedAlignmentsType2 = "";
+	var initialDisagreedAlignmentsType3 = "";
+	
 
-<!--
-	// Here's an example input
-	//var initialSureAlignments = "0-0 0-2";
-	//var initialPossAlignments = "";
-	var initialSourceHighlights = "";
-	var initialTargetHighlights = "";
-	var initialDisagreedAlignmentsType1 = ""
-	var initialDisagreedAlignmentsType2 = ""
-	var initialDisagreedAlignmentsType3 = ""
-	//var sourceString = "Sizzling temperatures and hot summer pavements are anything but kind to the feet .";
-	//var targetString = "Il clima torrido e i marciapiedi dell' estate in citt√† rovente non sono niente di buono per i piedi .";
-	//var imageDirectory = "http://ironman.jhu.edu/wordImageServer/";
-	var viewTransposed = true;
-	var sourceIsRTL = true;
-	var targetIsRTL = false;
-//-->
+	var sourceIsRTL = false;
+	var targetIsRTL = true;
+
 
 	if(viewTransposed) {
 		var tmp = sourceString;
@@ -169,7 +171,6 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		tmp = sourceIsRTL;
 		sourceIsRTL = targetIsRTL;
 		targetIsRTL = tmp;
-
 		initialSureAlignments = transposeAlignments(initialSureAlignments);
 		initialPossAlignments = transposeAlignments(initialPossAlignments);
 		initialDisagreedAlignmentsType1 = transposeAlignments(disagreed_alignments_type1);
@@ -205,8 +206,6 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	}
 
 
-
-	
 	// log the time...
 	date = new Date();
 	timeAtStart = date.getTime();
@@ -265,8 +264,6 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	}
 
 
-
-
 	// Returns an initialized boolean array
 	function initalizeBooleanArray(length, indexOfTruesString) {
 		// pad the indexOfTruesString with spaces
@@ -308,7 +305,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		document.write('\t<td></td>\n');
 		for(i = 0; i < sourceWords.length; i++) {
 			var word = sourceWords[i];
-			document.write('\t<td valign="bottom" bgcolor=#ADE9E6 onmouseover="this.style.cursor=\'crosshair\'" onClick="javascript:clickColumn(' + i + ')">');
+			document.write('\t<td valign="bottom" bgcolor=#ADE9E6 onmouseover="this.style.cursor=\'crosshair\'" onClick="javascript:clickColumn(<?php echo $sentence_id; ?>,' + i + ')">');
 			//document.write('<div class=verticaltext >' + word + '</div>');
 			document.write('<div class=verticaltext>' + word + '</div>');
 			//document.write('<img src = "' + getImagePath(word, imageDirectory) + '" width="' + size + '" alt="' + word + '"' + ' title="' + word + '" border="0">');
@@ -325,7 +322,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			if(!targetIsRTL) {
 				document.write('<td>');	
 			} else {
-				document.write('<td align=left bgcolor=#E6E6FA onmouseover="this.style.cursor=\'crosshair\'" onClick="javascript:clickRow(' + row + ')">');	
+				document.write('<td align=left bgcolor=#E6E6FA onmouseover="this.style.cursor=\'crosshair\'" onClick="javascript:clickRow(<?php echo $sentence_id; ?>,' + row + ')">');	
 			}
 			if(smallerFont) { 
 				document.write('<font size=' + fontSize + '>');
@@ -334,26 +331,25 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			if(smallerFont) document.write('</font>');
 			document.write('</td>\n\t');
 			// print this row
-			for(column = 0; column < sourceWords.length; column++) {
-			
+			for(column = 0; column < sourceWords.length; column++) {			
 				if (disagreed_alignments_type1Grid[column][row]) {				
-					document.write('<td width="' + size +'" class="blue" id="button.' + column + '.' + row + '"');
+					document.write('<td width="' + size +'" class="blue" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 				} else if (disagreed_alignments_type2Grid[column][row]) {				
-					document.write('<td width="' + size +'" class="yellow" id="button.' + column + '.' + row + '"');
+					document.write('<td width="' + size +'" class="yellow" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 				} else if (disagreed_alignments_type3Grid[column][row]) {				
-					document.write('<td width="' + size +'" class="red" id="button.' + column + '.' + row + '"');
+					document.write('<td width="' + size +'" class="red" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 				} else if(sureGrid[column][row]) {
-					document.write('<td width="' + size +'" class="black" id="button.' + column + '.' + row + '"');
+					document.write('<td width="' + size +'" class="black" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 				} else if(probGrid[column][row]) {
-					document.write('<td width="' + size +'" class="gray" id="button.' + column + '.' + row + '"');
+					document.write('<td width="' + size +'" class="gray" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 				} else {
 					if(highlightedSourceWords[column] || highlightedTargetWords[row]) {
-						document.write('<td width="' + size +'" class="highlight" id="button.' + column + '.' + row + '"');
+						document.write('<td width="' + size +'" class="highlight" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 					} else {
-						document.write('<td width="' + size +'" class="white" id="button.' + column + '.' + row + '"');
+						document.write('<td width="' + size +'" class="white" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '"');
 					}
 				}
-				document.write(' onmouseover="this.style.cursor=\'pointer\'" onClick="javascript:clickButton(' + column + ',' + row + ')">');
+				document.write(" onmouseover=\"this.style.cursor='pointer'\" onClick=\"javascript:clickButton('<?php echo $id; ?>','<?php echo $sentence_id; ?>','<?php echo $userid; ?>','" + column + "','" + row + "')\">");
 				document.write('<img src= "'+ imageDirectory + 'clearpixel.gif" border="0" ');
 				document.write('title="' + targetWords[row] + ', ' + sourceWords[column]+ ' ['+column+','+row+']" ');
 				document.write('title="' + targetWords[row] + ', ' + sourceWords[column]+ '" ');
@@ -365,7 +361,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			if(!targetIsRTL) {
 				document.write('<td>');	
 			} else {
-				document.write('<td align=left bgcolor=#E6E6FA onmouseover="this.style.cursor=\'crosshair\'" onclick="javascript:clickRow(' + row + ')">');	
+				document.write('<td align=left bgcolor=#E6E6FA onmouseover="this.style.cursor=\'crosshair\'" onclick="javascript:clickRow(<?php echo $sentence_id; ?>,' + row + ')">');	
 			}
 			if(smallerFont) document.write('<font size=' + fontSize + '>');
 			document.write(targetWord);
@@ -381,7 +377,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		document.write('\t<td></td>\n');
 		for(i = 0; i < sourceWords.length; i++) {
 			var word = sourceWords[i];
-			document.write('\t<td valign=bottom bgcolor=#ADE9E6 onmouseover="this.style.cursor=\'crosshair\'" onclick="javascript:clickColumn(' + i + ')">');
+			document.write('\t<td valign=bottom bgcolor=#ADE9E6 onmouseover="this.style.cursor=\'crosshair\'" onclick="javascript:clickColumn(<?php echo $sentence_id; ?>,' + i + ')">');
 			document.write('<div style="margin-top: '+(word.length/2*13)+ 'px;"><div class=verticaltext-rtl>' + word + '</div></div>');
 			//document.write('<div class=verticaltext-rtl>' + word + '</div>');
 			//document.write('<img src = "' + getImagePath(word, imageDirectory) + '" width="' + size + '" alt="' + word + '"' + ' title="' + word + '" border="0">');
@@ -420,7 +416,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		for(i = sourceWords.length-1; i >= 0; i--) {
 			var word = sourceWords[i];
 			document.write('\t<td valign="bottom">');
-			document.write('<a href="javascript:clickColumn(' + i + ')">');
+			document.write('<a href="javascript:clickColumn(<?php echo $sentence_id; ?>,' + i + ')">');
 			document.write('<div class=verticaltext ><div style="width: ' + fontSize + 'px">' + word + '</div></div>');
 			//document.write('<img src = "' + getImagePath(word, imageDirectory) + '" width="' + size + '" alt="' + word + '"' + ' title="' + word + '" border="0">');
 			
@@ -438,25 +434,25 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			if(smallerFont) { 
 				document.write('<font size=' + fontSize + '>');
 			}
-			document.write('<span class="blacklink"><a href="javascript:clickRow(' + row + ')">');
+			document.write('<span class="blacklink"><a href="javascript:clickRow(<?php echo $sentence_id; ?>,' + row + ')">');
 			document.write(targetWord);
-			document.write('<a href="javascript:clickRow(' + row + ')"></span>');
+			document.write('<a href="javascript:clickRow(<?php echo $sentence_id; ?>,' + row + ')"></span>');
 			if(smallerFont) document.write('</font>');
 			document.write('</td>\n\t');
 			// print this row
 			for(column = sourceWords.length-1; column >= 0; column--) {
 				if(sureGrid[column][row]) {
-					document.write('<td class="black" id="button.' + column + '.' + row + '">');
+					document.write('<td class="black" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '">');
 				} else if(probGrid[column][row]) {
-					document.write('<td class="gray" id="button.' + column + '.' + row + '">');
+					document.write('<td class="gray" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '">');
 				} else {
 					if(highlightedSourceWords[column] || highlightedTargetWords[row]) {
-						document.write('<td class="highlight" id="button.' + column + '.' + row + '">');
+						document.write('<td class="highlight" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '">');
 					} else {
-						document.write('<td class="white" id="button.' + column + '.' + row + '">');
+						document.write('<td class="white" id="<?php echo $sentence_id; ?>.' + column + '.' + row + '">');
 					}
 				}
-				document.write('<a href="javascript:clickButton(' + column + ',' + row + ')">');
+				document.write("<a href=\"javascript:clickButton('<?php echo $id; ?>','<?php echo $sentence_id; ?>','<?php echo $userid; ?>','" + column + "','" + row + "')\">");
 				document.write('<img src= "'+ imageDirectory + 'clearpixel.gif" border="0" ');
 				document.write('title="' + targetWords[row] + ', ' + sourceWords[column]+ '" ');
 				document.write('width="' + size + '" height="' + size + '"></a>');
@@ -466,9 +462,9 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			// print the target word again
 			document.write('<td>');	
 			if(smallerFont) document.write('<font size=' + fontSize + '>');
-			document.write('<span class="blacklink"><a href="javascript:clickRow(' + row + ')">');
+			document.write('<span class="blacklink"><a href="javascript:clickRow(<?php echo $sentence_id; ?>,' + row + ')">');
 			document.write(targetWord);
-			document.write('<a href="javascript:clickRow(' + row + ')"></span>');
+			document.write('<a href="javascript:clickRow(<?php echo $sentence_id; ?>,' + row + ')"></span>');
 			if(smallerFont) document.write('</font>');
 			document.write('</td>\n\t');
 			
@@ -482,7 +478,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		for(i = sourceWords.length-1; i >= 0; i--) {
 			var word = sourceWords[i];
 			document.write('\t<td valign="top">');
-			document.write('<a href="javascript:clickColumn(' + i + ')">');
+			document.write('<a href="javascript:clickColumn(<?php echo $sentence_id; ?>,' + i + ')">');
 			document.write('<div class=verticaltext-rtl>' + word + '</div>');
 			//document.write('<img src = "' + getImagePath(word, imageDirectory) + '" width="' + size + '" alt="' + word + '"' + ' title="' + word + '" border="0">');
 			
@@ -496,116 +492,148 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	}
 
 	
-function clickButton(x, y) { 
-	button = document.getElementById("button."+x+"."+y);
+function clickButton(id, sentid, userid, x, y) { 
+	button = document.getElementById(sentid+"."+x+"."+y);
 	if (button != null) {
 		activateDone("<?php echo $monitoring;?>");
-		if(sureGrid[x][y] == false && probGrid[x][y] == false) {
-			sureGrid[x][y] = false;	
-			probGrid[x][y] = true;
+		if (button.className == "white" || button.className == "highlight") {
 			button.className = "gray";
+			//alert(id+","+ sentid+","+ userid+","+x+","+y + " :: " +getCheckedButton(sentid,"gray"));
+			saveAlignment(id, sentid, userid, 0, getCheckedButton(sentid,"gray")); 
+		} else if (button.className == "gray") {
+			button.className = "black";
+			saveAlignment(id, sentid, userid, 0, getCheckedButton(sentid,"gray")); 
+			saveAlignment(id, sentid, userid, 1, getCheckedButton(sentid,"black")); 
 		} else {
-			if(sureGrid[x][y] == false) {
-				sureGrid[x][y] = true;
-				probGrid[x][y] = false;
-				button.className = "black";
-			} else {
-				sureGrid[x][y] = false;
-				probGrid[x][y] = false;	
-				if(sourceHighlights[x] || targetHighlights[y]) {
-					button.className = "highlight";
-				} else {	
-					button.className = "white";
-				}
-			}
+			button.className = "white";
+			saveAlignment(id, sentid, userid, 1, getCheckedButton(sentid,"black")); 	
 		}
+	}
 		
+	//alert("SURE: "+getCheckedButton(sentid,"black")+"\nPOSS: " +getCheckedButton(sentid,"gray"));
+}
+	
+function clickRow(sentid, y) { 
+	for(var x = 0; x < width; x++) {
+		var button = document.getElementById(sentid+"."+x+"."+y);
+		if (button.className == "white") {
+			button.className = "highlight";
+		} else if (button.className == "highlight") {	
+			button.className = "white";
+		}
 	}
 }
 	
-	
-	
-	function clickRow(y) { 
-		targetHighlights[y] = (!targetHighlights[y]);
-		var x = 0;
-		for(x = 0; x < width; x++) {
-			var button = document.getElementById("button."+x+"."+y);
-			if(sureGrid[x][y] == false && probGrid[x][y] == false) {
-				if(sourceHighlights[x] || targetHighlights[y]) {
-					button.className = "highlight";
-				} else {	
-					button.className = "white";
-				}
-			} 
-		}
+function clickColumn(sentid, x) { 
+	for(var y = 0; y < height; y++) {
+		var button = document.getElementById(sentid+"."+x+"."+y);
+		if (button.className == "white") {
+			button.className = "highlight";
+		} else if (button.className == "highlight") {	
+			button.className = "white";
+		} 
 	}
+}
 	
-	function clickColumn(x) { 
-		sourceHighlights[x] = (!sourceHighlights[x]);
-		var y = 0;
-		for(y = 0; y < height; y++) {
-			var button = document.getElementById("button."+x+"."+y);
-			if(sureGrid[x][y] == false && probGrid[x][y] == false) {
-				if(sourceHighlights[x] || targetHighlights[y]) {
-					button.className = "highlight";
-				} else {	
-					button.className = "white";
-				}
-			} 
-		}
-	}
-	
-	
-	function boolGridToString(grid) {
-		var gridString = "";
-		for(i = 0; i < grid.length; i++) {
-			row = grid[i];
-			for(j = 0; j < row.length; j++) {
-				if(grid[i][j]) {
-					gridString += i + "-" + j + " ";
-				}
-			}
-		}
-		// remove the training space
-		gridString = gridString.substring(0, gridString.length-1);
+function getCheckedButton (id, color) {
+	var ranges="";
+	for (var x=0; x >= 0; x++) {
+		var y=0;
+		el = document.getElementById(id+"."+x+"."+y);
+        if (el == null) {
+	  		break;
+       	}
+       	while (true) {
+			if (el.className == color) {
+                ranges += x+"-"+y+" ";
+            }
+            y++;
+        	
+        	el = document.getElementById(id+"."+x+"."+y);
+        	if (el == null) {
+	  			break;
+       		}      		 	
+    	}
+    }
+    return ranges.replace(/\s+$/g, "");
+}
 
-		if(viewTransposed) {
-			//gridString = transposeAlignments(gridString);
-		}
-		return gridString;
-	}
-	
-	// Converts an array of highlights into a string
-	function highlightsToString(array) {
-		var arrayString = "";
-		for(i = 0; i < array.length; i++) {
-			if(array[i]) {
-				arrayString += i + " ";
+function saveAlignment (id, sentid, userid, checkid, alignids) {
+$.ajax({
+  url: 'update.php',
+  type: 'GET',
+  data: {id: id, targetid: sentid, userid: userid, check: checkid, alignids: alignids},
+  async: false,
+  cache:false,
+  crossDomain: true,
+  success: function(response) {
+  	if (response == "error") {
+  		//$("#log").html("");
+  		alert("Warning! A problem occurred during saving the data. Try again later!");
+  	} 
+  },
+  error: function(response, xhr,err ) {
+        //alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
+        //alert(ERRORID);
+        switch(xhr.status) {
+			case 200: 
+				$("#log").html('<font color=gray>Data saved!</font>');
+      			break;
+    		case 404:
+      			$("#log").html('<font color=red>Could not contact server.</font>');
+      			break;
+    		case 500:
+      			$("#log").html('<font color=red>A server-side error has occurred.</font>');
+      			break;
+    		}   
+    	setTimeout(function(){$("#log").html('')}, 3000);		
+    }
+  });
+  
+}
+
+function boolGridToString(grid) {
+	var gridString = "";
+	for(i = 0; i < grid.length; i++) {
+		row = grid[i];
+		for(j = 0; j < row.length; j++) {
+			if(grid[i][j]) {
+				gridString += i + "-" + j + " ";
 			}
 		}
-		// remove the training space
-		arrayString = arrayString.substring(0, arrayString.length-1);
-		return arrayString;
 	}
-		
-	function goto (url) {
-		var button = document.getElementById("updatebutton");
-		if (button == null || button.disabled == true) {
-			window.location = url;
-		} else {
-		   if (confirm("You have unsaved changes, are you sure that you want to cancel? All of your changes will be lost.")) {
-		   	   window.location = url;
-		   }
-		}
+	// remove the training space
+	gridString = gridString.substring(0, gridString.length-1);
+	if(viewTransposed) {
+		//gridString = transposeAlignments(gridString);
 	}
+	return gridString;
+}
 	
-	function getsentnum(filename) {
-		//alert("ciao");
-		var field = document.getElementById("sentnum");
-		if (field.value != "") {
-			goto('wordaligner.php?filename='+filename+'&sentnum='+ field.value);
+// Converts an array of highlights into a string
+function highlightsToString(array) {
+	var arrayString = "";
+	for(i = 0; i < array.length; i++) {
+		if(array[i]) {
+			arrayString += i + " ";
 		}
 	}
+	// remove the training space
+	arrayString = arrayString.substring(0, arrayString.length-1);
+	return arrayString;
+}
+	
+function goto (url) {
+	var button = document.getElementById("updatebutton");
+	if (button == null || button.disabled == true) {
+		window.location = url;
+	} else {
+	   if (confirm("You have unsaved changes, are you sure that you want to cancel? All of your changes will be lost.")) {
+	   	   window.location = url;
+	   }
+	}
+}
+	
 </script>
 
 <?php  
@@ -614,7 +642,6 @@ function clickButton(x, y) {
 		
 		print "<div style='display: inline-block; border-top: dashed #666 1px; width: 100%'>&nbsp;</div>";
 		$i++;
-	break;
 	}
 	#print "</div>";
 	

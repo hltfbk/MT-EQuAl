@@ -12,16 +12,16 @@ a:active {color:rgb(0, 0, 238);}  /* selected link */
 #menu .logo2 {background:transparent none repeat scroll 0% 0%; padding:0px; background-color:Transparent;}
 /* sub-menus*/
 #menu ul { padding:0px; margin:0px; display:block; display:inline;}
-#menu li ul {position:absolute; left:-10px; top:-2px; margin-top:45px; line-height:1px; background-color:#172322; color:#0395CC; /* for IE */ display:none; }
+#menu li ul {position:absolute; left:-10px; top:-2px; line-height:1px; background-color:#172322; color:#0395CC; /* for IE */ display:none; }
 #menu li:hover ul { display:block;}
-#menu li ul li{ display:block; margin:5px 20px; padding: 5px 0px;  border-top: dotted 1px #606060; list-style-type:none; }
+#menu li ul li{ display:block; margin:5px 16px; list-style-type:none; }
 #menu li ul li:first-child { border-top: none; }
 #menu li ul li a { display:block; color:#0395DD; }
 #menu li ul li a:hover { color:#7FDDFE; }
 /* main submenu */
-#menu #main { left:0px; top:-10px; padding-top:20px; background-color:#7cb7e3; color:#fff; z-index:999;}
+#menu #main { left:0px; top:-10px; background-color:#7cb7e3; color:#fff; z-index:999;}
 /* task */
-.taskContainer div {background-color:#000; display:inline; padding:5px;}
+.taskContainer div {background-color:#000; display:inline; }
 .taskContainer input[type="text"] {border:none;}
 .taskContainer img { vertical-align:middle;}
 /* corners*/
@@ -54,11 +54,11 @@ div.index {display: inline;
 	border-top: solid #ddd 1px; 
 	box-shadow: 0px 5px 5px #888, 0px -2px 5px #888;
 	overflow:auto;
-	z-index: 1;
+	z-index: 6;
 }
 	
-div.error {background: #fff; z-index:300; position:fixed; top:45px; left:100px; border-left: solid 1px #000; border-bottom: solid 1px #666; padding: 3px; font-size: 16px; margin-bottom: 0px; border-radius: 0px 0px 0px 15px;}
-div.sentindex {display: cell; margin-left: 36px; width: 60px; text-align: right; vertical-align: top; padding-right: 4px; top: 10px}
+div.error {background: #fff; z-index:3; position:fixed; top:45px; left:100px; border-left: solid 1px #000; border-bottom: solid 1px #666; padding: 3px; font-size: 16px; margin-bottom: 0px; border-radius: 0px 0px 0px 15px;}
+div.sentindex {display: cell; margin-left: 36px; width: 60px; font-size: 13px; padding-top: 5px; text-align: right; vertical-align: top; padding-right: 4px; top: 10px}
 div.source {border: solid #bbb 1px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; padding-bottom: 8px; width: 575px; border-radius: 4px 4px 4px 4px;}
 div.reference {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; margin-top: 8px; padding-bottom: 10px;  width: 575px;}
 div.output {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 3px; margin-top: 8px; margin-right: 8px; width: 590px}

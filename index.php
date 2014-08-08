@@ -58,6 +58,7 @@ if (isset($_SESSION)) {
 	session_register("mysession"); 
 }			
 include("menu.php");
+
 if ($mysession["taskid"] > 0 && isset($mysession["userid"])) {
 	$source_sentences = getSourceSentences($mysession["taskid"]);
 	if (count($source_sentences) == 0) {
@@ -66,8 +67,7 @@ if ($mysession["taskid"] > 0 && isset($mysession["userid"])) {
 	}
 	$done_sentences = getDoneSentences($mysession["taskid"], $mysession["userid"]);
 	#$error_sentences = getErrorSentences($mysession["taskid"]);
-	
-	print "<div class='error'>&nbsp;&nbsp;Evaluated items: <b>".count($done_sentences) . "</b>/<b>" . count($source_sentences) ."</b></div><div class=index><br>";
+	print "<div class='error'>&nbsp;&nbsp; <b>".count($done_sentences) . "</b>/<b>" . count($source_sentences) ."</b> <small>evaluated items</div><div class=index><br>";
 
 	$i=1;
 	while (list($k,$arr) = each($source_sentences)) {
@@ -82,8 +82,8 @@ if ($mysession["taskid"] > 0 && isset($mysession["userid"])) {
 		}
 		print "<a name='$k'><div class=row><div class=sentindex>$done <strong>$i.</strong> </div>";
 		
-		print showSentence($arr[0], "<a href='".$mysession["tasktype"].".php?id=$k&sentidx=$i'>".$arr[1]."</a>"); 
-		print "</div><br>";
+		print showSentence($arr[0], "<a href='".$mysession["tasktype"].".php?id=$k&sentidx=$i&taskid=".$mysession["taskid"]."'>".$arr[1]."</a>"); 
+		print "</div><p>";
 		$i++;
 	}
 }

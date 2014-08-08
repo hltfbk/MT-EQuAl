@@ -29,6 +29,8 @@ if (isset($action) && $action == "reset") {
 	resetErrors($id,$targetid,$userid,$check);
 } else if (isset($completed)) {
 	print saveDone($id,$userid,$completed);
+} else if (isset($alignids)) {
+	saveAligment($id,$targetid,$userid,$check,$alignids);
 } else if (isset($tokenids)) {
 	if (isset($action) && $action == "remove") {
 		removeError($id,$targetid,$userid,$check,$tokenids);

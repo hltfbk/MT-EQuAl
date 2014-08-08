@@ -132,8 +132,8 @@ $(document).ready(function() {
 <?php
 print "<div class=donebottom>";
 if ($sentidx > 0) {
-	$prevpage = "errors.php?id=".($id-1)."&sentidx=".($sentidx-1);
-	$nextpage = "errors.php?id=".($id+1)."&sentidx=".($sentidx+1);
+	$prevpage = "errors.php?id=".($id-1)."&taskid=$taskid&sentidx=".($sentidx-1);
+	$nextpage = "errors.php?id=".($id+1)."&taskid=$taskid&sentidx=".($sentidx+1);
 	
 	print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
 }
@@ -254,7 +254,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 				print "<div style='background: #dedede;'> ";
 				print "&nbsp;<i><small><b>".$evalcodes["errors"][$errID].":</b></small></i>";
 				if ($monitoring==0) {	
-						print "&nbsp;&nbsp;&nbsp;&nbsp;<button id=reset.$i name=reset onclick=\"javascript:reset('$id','$sentence_id',$userid,$errID,$sentidx);\">reset</button>";
+						print "&nbsp;&nbsp;&nbsp;&nbsp;<button id=reset.$i name=reset onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
 				}
 				print "</div>$annotations";
 				}

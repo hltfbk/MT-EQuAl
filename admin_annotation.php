@@ -30,20 +30,30 @@ limitations under the License.
 		
 		print "<table cellspacing=0 cellpadding=2 border=1 valign=top><tr bgcolor=#ccc><th>User</th><th>N.ann</th><th>N.pages</th><th>Last annotations</th><th>DB Check</th><th>Annotated tasks</small></th></tr>\n";
 	while (list ($user_id, $useritems) = each($hash_users)) {
-		$checkdone = "&nbsp;";
+		$checkdone = "";
 				
 		#controllo che se ci sono dei done ci siano le annotazioni (almeno una, per cominciare)
 		$hash_errors = getDBInconsistency($user_id,split(" ",$useritems[2]));
 		if (count($hash_errors) >0) {
-			$checkdone = "<img border=0 src='img/database_error.png' title='WARNING! Some annotations were not saved correctly.'> ";
-			$checkdone .= " <small>".count($hash_errors) ." severe errors: </small>";
+			$errid_count=0;
+			
 			while (list ($sentid, $infoarr) = each($hash_errors)) {
-				$checkdone .= "<a href='".$tasks[$infoarr[0]][1].".php?id=$sentid&userid=$user_id&taskid=".$infoarr[0]."'>$sentid</a>";
-				if ($infoarr[1] != "") {
-					$checkdone .= " <small>(".$infoarr[1].")</small>";
+				if (strpos($sentid, "DONE!", 0) === 0) {
+					$checkdone = "<img border=0 src='img/database_error.png' title='WARNING! Some done are missed!'> <small>Check <b>DONE! in task ".$infoarr[0]."</b>: ".$infoarr[1]. "</small><br>". $checkdone; 
+				} else {
+					$errid_count++;
+					if ($errid_count == 1) {
+						$checkdone .= "<br><img border=0 src='img/database_error.png' title='WARNING! Some annotations were not saved correctly.'> <small>Check these incompleted annotations or errors: </small><br>";
+						#$checkdone .= " <small>".count($hash_errors) ." severe errors: </small>";
+					}
+				
+					$checkdone .= "<a href='".$tasks[$infoarr[0]][1].".php?id=$sentid&userid=$user_id&taskid=".$infoarr[0]."'>$sentid</a>";
+					if ($infoarr[1] != "") {
+						$checkdone .= " <small>(".$infoarr[1].")</small>";
+					}
+					$checkdone .= ", ";
+					#$error_export .= "$user_id $sentid\n";
 				}
-				$checkdone .= ", ";
-				$error_export .= "$user_id $sentid\n";
 			}
 		} else {
 			$checkdone = "<img src='img/done.png' width=14 title='DB consistency checking passed!'> ";

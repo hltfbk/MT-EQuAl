@@ -109,7 +109,7 @@ function check(id,target_id,user_id,check,checkid,totcheck) {
     }
 }
 
-function reset(id,targetid,userid,errid,sentidx) {
+function reset(id,targetid,taskid,userid,errid,sentidx) {
   //alert(id+","+targetid+","+errid);
   if (confirm("Do you really want to cancel all the annotations in this error category?")) {
 	$.ajax({
@@ -121,6 +121,8 @@ function reset(id,targetid,userid,errid,sentidx) {
   		crossDomain: true,
   		success: function(response) {
   			//alert(id+","+target_id+","+check);
+  			window.open("errors.php?id="+id+"&taskid="+taskid+"&sentidx="+sentidx,"_top");
+      
   		},
   		error: function(response, xhr,err ) {
         	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
@@ -130,8 +132,7 @@ function reset(id,targetid,userid,errid,sentidx) {
 			}
 		}
   	});
-	window.open("errors.php?id="+id+"&sentidx="+sentidx,"_top");
-                        
+	                  
   	//$("#errors"+targetid).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",0,1,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",1,2,2);\">Too many errors</td><tr></table>");
   }	
 }

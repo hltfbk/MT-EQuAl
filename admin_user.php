@@ -55,7 +55,7 @@ if ($mysession["status"] == "admin") {
 						if ($key == "activated" && $$key == "on") {
 							$$key = "Y";
 						} 
-						$userinfo[$key] = $$key;
+						$userinfo[$key] = trim($$key);
 					}
 					$query .= ",$key=\"".$userinfo[$key]."\"";				
 				}
@@ -76,12 +76,21 @@ if ($mysession["status"] == "admin") {
 			} else {
 				$userinfo = getUserInfo($id);
 			}
-			$sentlabel = "Update";
-			$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=user','_self');\"  value='Cancel'> ";	
+			
 			if ($id == -1) {
-				$res = safe_query("INSERT INTO user (name,registered) VALUES ('_NEW_',now());");
-				if ($res == 1) {
-					$id = mysql_insert_id();
+				if ($userinfo["name"] != "" && $userinfo["username"] != "" && $userinfo["password"] != "") {
+					$res = safe_query("INSERT INTO user (name,registered) VALUES ('_NEW_',now());");
+					if ($res == 1) {
+						$id = mysql_insert_id();
+					}
+				} else {
+					if ($userinfo["name"] == "") {
+						print "<small><font color=red>WARNING!</font> The name is mandatory.</small><br>";
+					} else if ($userinfo["username"] == "") {
+						print "<small><font color=red>WARNING!</font> The username is mandatory.</small><br>";
+					} else if ($userinfo["password"] == "") {
+						print "<small><font color=red>WARNING!</font> The password is mandatory.</small><br>";
+					} 
 				}
 			}
 			if (!empty($query) && $id != -1) {
@@ -90,6 +99,9 @@ if ($mysession["status"] == "admin") {
 					print "<img src='img/database_error.png'> ERROR! This user has not been saved correctly.<br>"; 
 				}
 				//print "QUERY: $query<br>";
+				$sentlabel = "Update";
+				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=user','_self');\"  value='Cancel'> ";	
+			
 			}
 		}
 	}

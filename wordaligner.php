@@ -10,11 +10,11 @@ include("config.php");
 include("functions.php");
 
 
-$sentence_hash = getSentence($id);
-	if (!isset($sentence_hash["source"])) {
-		header("Location: index.php#".($id-1)); 
-		exit;
-	}
+$sentence_hash = getSentence($id, $taskid);
+if (!isset($sentence_hash["source"])) {
+	header("Location: index.php#".($id-1)); 
+	exit;
+}
 ?>
 
 <style>
@@ -35,7 +35,7 @@ include("menu_sentence.php");
 $monitoring=0;
 if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 	$time = date( "d/m/Y H:m:s", time() );
-	print "<div style='display: inline-block; background: yellow; border: dashed #777 1px; border-radius: 0px 0px 15px 15px;  padding: 9px; font-size:12px; position:absolute; top: 0px; margin-left: 320px; z-index:1000'>Monitoring... sentence <b>$id</b>, user: <b>$userid</b> ($time)<br><a href='admin.php#user$userid' style='float:right'>« Back to Admin</a></div><br>";
+	print "<div style='display: inline-block; background: yellow; border: dashed #777 1px; border-radius: 0px 0px 15px 15px;  padding: 9px; font-size:12px; position:absolute; top: 0px; margin-left: 320px; z-index:1000'>Monitoring... sentence <b>$id</b>, user: <b>$userid</b> ($time)<br><a href='admin.php?section=annotation#user$userid' style='float:right'>« Back to Admin</a></div><br>";
 	$monitoring=1;
 	$sentidx=-1;
 } else {
@@ -85,8 +85,7 @@ The initial alignment that you see was created by a computer, and it contains er
 </span>
 
 <?php
-    $sentence_hash = getSentence($id);
-	print "<div style='display: block; width: 100%; float: left;left: 0px;'><div class=label>SOURCE: </div>" . showSentence($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
+    print "<div style='display: block; width: 100%; float: left;left: 0px;'><div class=label>SOURCE: </div>" . showSentence($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
 	if (isset($sentence_hash["reference"])) {
 		print "<div class=labelref>REFERENCE: </div>" . showSentence ($sentence_hash["reference"][0], $sentence_hash["reference"][1], "reference")."<div>";;
 	}
@@ -156,7 +155,7 @@ $(document).ready(function() {
 </script>	
 <?php
 if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
-	print "<script>\n  setTimeout(\"window.open('errors.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";
+	print "<script>\n  setTimeout(\"window.open('wordalign_output.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";
 }
 ?>			
 </body>

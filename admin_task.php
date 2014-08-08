@@ -60,13 +60,19 @@ if ($mysession["status"] == "admin") {
 			} else {
 				$taskinfo = getTaskInfo($id);
 			}
-			$sentlabel = "Update";
-			$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";	
-		
+			
 			if ($id == -1) {
-				$res = safe_query("INSERT INTO task (name,owner) VALUES ('_NEW_','".$mysession['userid']."');");
-				if ($res == 1) {
-					$id = mysql_insert_id();
+				if ($taskinfo["name"] != "" && $taskinfo["type"] != "") {
+					$res = safe_query("INSERT INTO task (name,owner) VALUES ('_NEW_','".$mysession['userid']."');");
+					if ($res == 1) {
+						$id = mysql_insert_id();
+					}
+				} else {
+					if ($taskinfo["type"] == "") {
+						print "<small><font color=red>WARNING!</font> The type is mandatory.</small><br>";
+					} else if ($taskinfo["name"] == "") {
+						print "<small><font color=red>WARNING!</font> The name is mandatory.</small><br>";
+					}  
 				}
 			}
 			if (!empty($query) && $id != -1) {
@@ -75,6 +81,9 @@ if ($mysession["status"] == "admin") {
 					print "<img src='img/database_error.png'> ERROR! This user has not been saved correctly.<br>"; 
 				}
 				//print "QUERY: $query<br>";
+				$sentlabel = "Update";
+				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";	
+		
 			}
 		}
 	}

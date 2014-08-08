@@ -173,8 +173,8 @@ function getSourceSentenceIdMapping($task_id) {
 
 
 # get info about a source sentence: text, reference, ..
-function getSentence($num) {
-	$query = "SELECT type,lang,text FROM sentence WHERE num='$num' OR (linkto='$num' AND type='reference');";
+function getSentence($num, $taskid) {
+	$query = "SELECT type,lang,text FROM sentence WHERE (num='$num' OR (linkto='$num' AND type='reference')) AND task_id='$taskid';";
 	$result = safe_query($query);	
 	$hash = array();
 	if (mysql_num_rows($result) > 0) {
@@ -313,7 +313,7 @@ function saveQuality($source_id,$output_id,$user_id,$eval,$action="") {
 		$query = "UPDATE annotation SET eval='$eval',lasttime=now() WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id;";
 	}
 	
-	//safe_query("UPDATE done SET completed='N',lasttime=now() WHERE sentence_num='$source_id' AND user_id=$user_id;");
+	safe_query("UPDATE done SET completed='N',lasttime=now() WHERE sentence_num='$source_id' AND user_id=$user_id;");
 	return safe_query($query);		
 }
 
@@ -377,6 +377,27 @@ function saveErrors($source_id,$output_id,$user_id,$eval,$evalids="",$evaltext="
 		
 		$query = "DELETE FROM annotation WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval<2";
 		safe_query($query);	
+	}
+	
+	safe_query("UPDATE done SET completed='N',lasttime=now() WHERE sentence_num='$source_id' AND user_id=$user_id");
+	return 1;
+}
+
+#save annotation task: alignment
+function saveAligment($source_id,$output_id,$user_id,$eval,$evalids="") {
+	$query="";
+	$evalids=trim($evalids);
+	if ($evalids == "") {
+		$query = "DELETE FROM annotation WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval=$eval";
+		safe_query($query);
+	} else {
+		$hash = getErrors($source_id,$output_id,$user_id);
+		if (!isset($hash[$eval])) {
+			$query = "INSERT INTO annotation (sentence_num,output_id,user_id,eval,evalids,lasttime) VALUES ('$source_id','$output_id',$user_id,$eval,'$evalids',now())";
+		} else {	
+			$query = "UPDATE annotation SET evalids='$evalids',lasttime=now() WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval=$eval;";
+		}
+		safe_query($query);
 	}
 	
 	safe_query("UPDATE done SET completed='N',lasttime=now() WHERE sentence_num='$source_id' AND user_id=$user_id");
@@ -658,16 +679,62 @@ function getCheckAndDone($userid) {
 
 function getDBInconsistency($userid, $tasks) {
 	$hash_error= array();
+	$array_sentencenum = array();
+	//get annotation about removed sentences (TODO REMOVE THIS PATCH ASAP!!) 
+	$query = "select output_id from annotation left join sentence on annotation.output_id=sentence.num where num is null AND user_id=$userid;";
+	$result = safe_query($query);
+	while ($row = mysql_fetch_row($result)) {
+		array_push($array_sentencenum, $row[0]);
+	}
+	$query = "select output_id from annotation left join sentence on annotation.sentence_num=sentence.num where num is null AND user_id=$userid;";
+	$result = safe_query($query);
+	while ($row = mysql_fetch_row($result)) {
+		array_push($array_sentencenum, $row[0]);
+	}		
+	//end get
+	
+	
 	//check if all evaluated sentence has full annotated output
 	foreach ($tasks as $taskname) {
 		$taskid=getTaskID($taskname);
 		$tasksyscount=countTaskSystem ($taskid);
 		if ($tasksyscount > 0) {
-			$query = "select sentence_num,count(*) as count from annotation left join sentence on sentence.num=annotation.sentence_num where task_id=$taskid AND user_id=$userid group by sentence_num having count < $tasksyscount;";
+			$query="SELECT count(*) FROM done LEFT JOIN sentence ON done.sentence_num=sentence.num WHERE user_id=$userid AND completed='Y' AND task_id=$taskid;";
 			$result = safe_query($query);
+			$row = mysql_fetch_row($result);
+			$num_done = $row[0];
+			
+			$query = "SELECT sentence_num,output_id,count(*) AS count FROM annotation LEFT JOIN sentence ON sentence.num=annotation.sentence_num where task_id=$taskid AND user_id=$userid group by sentence_num,output_id order by sentence_num;";
+			$result = safe_query($query);
+			$hash = array();
 			if (mysql_num_rows($result) > 0) {
 				while ($row = mysql_fetch_row($result)) {
-					$hash_error[$row[0]] = array($taskid,"");
+					if (!in_array($row[1], $array_sentencenum)) {
+						if (isset($hash[$row[0]])) {
+							$hash[$row[0]] += 1;
+						} else {
+							$hash[$row[0]] = 1;
+						}
+					}	
+				}
+				while (list ($sentence_num, $countann) = each($hash)) {
+					if ($countann < $tasksyscount) {
+						$hash_error[$sentence_num] = array($taskid,"");
+					}
+				}
+				if ($num_done != count($hash)) {
+					$msg = "";
+					if ($num_done == 1) {
+						$msg = "there is ".$num_done." done on ";
+					} else {
+						$msg = "there are ".$num_done." done on ";
+					}
+					if (count($hash) == 1) {
+						$msg .= count($hash)." annotation!";
+					} else {
+						$msg .= count($hash)." annotations!";
+					}
+					$hash_error["DONE!".$taskid] = array($taskid, $msg);
 				}
 			}
 		}
@@ -691,6 +758,8 @@ function getDBInconsistency($userid, $tasks) {
 }
 
 function exportCSV ($userid) {
+	ini_set('max_execution_time', 1000);
+	
 	$intDir="/tmp";
 	if (!is_dir($intDir)) {
 		mkdir($intDir, 0777);
@@ -914,6 +983,8 @@ function exportCSV ($userid) {
 
 #save XML files
 function exportXML ($userid) {
+	ini_set('max_execution_time', 1000);
+
 	$intDir="/tmp";
 	if (!is_dir($intDir)) {
 		mkdir($intDir, 0777);
@@ -1458,4 +1529,76 @@ function xml_escape($s) {
     $s = htmlspecialchars($s, ENT_QUOTES, 'UTF-8', false);
     return $s;
 }
+
+function chr_utf8($code) { 
+        if ($code < 0) return false; 
+        elseif ($code < 128) return chr($code); 
+        elseif ($code < 160) // Remove Windows Illegals Cars 
+        { 
+            if ($code==128) $code=8364; 
+            elseif ($code==129) $code=160; // not affected 
+            elseif ($code==130) $code=8218; 
+            elseif ($code==131) $code=402; 
+            elseif ($code==132) $code=8222; 
+            elseif ($code==133) $code=8230; 
+            elseif ($code==134) $code=8224; 
+            elseif ($code==135) $code=8225; 
+            elseif ($code==136) $code=710; 
+            elseif ($code==137) $code=8240; 
+            elseif ($code==138) $code=352; 
+            elseif ($code==139) $code=8249; 
+            elseif ($code==140) $code=338; 
+            elseif ($code==141) $code=160; // not affected 
+            elseif ($code==142) $code=381; 
+            elseif ($code==143) $code=160; // not affected 
+            elseif ($code==144) $code=160; // not affected 
+            elseif ($code==145) $code=8216; 
+            elseif ($code==146) $code=8217; 
+            elseif ($code==147) $code=8220; 
+            elseif ($code==148) $code=8221; 
+            elseif ($code==149) $code=8226; 
+            elseif ($code==150) $code=8211; 
+            elseif ($code==151) $code=8212; 
+            elseif ($code==152) $code=732; 
+            elseif ($code==153) $code=8482; 
+            elseif ($code==154) $code=353; 
+            elseif ($code==155) $code=8250; 
+            elseif ($code==156) $code=339; 
+            elseif ($code==157) $code=160; // not affected 
+            elseif ($code==158) $code=382; 
+            elseif ($code==159) $code=376; 
+        } 
+        if ($code < 2048) return chr(192 | ($code >> 6)) . chr(128 | ($code & 63)); 
+        elseif ($code < 65536) return chr(224 | ($code >> 12)) . chr(128 | (($code >> 6) & 63)) . chr(128 | ($code & 63)); 
+        else return chr(240 | ($code >> 18)) . chr(128 | (($code >> 12) & 63)) . chr(128 | (($code >> 6) & 63)) . chr(128 | ($code & 63)); 
+    } 
+
+// Callback for preg_replace_callback('~&(#(x?))?([^;]+);~', 'html_entity_replace', $str); 
+function html_entity_replace($matches) { 
+	if ($matches[2]) { 
+        return chr_utf8(hexdec($matches[3])); 
+    } elseif ($matches[1]) { 
+        return chr_utf8($matches[3]); 
+    } 
+    switch ($matches[3]) { 
+        case "nbsp": return chr_utf8(160); 
+    	case "iexcl": return chr_utf8(161); 
+        case "cent": return chr_utf8(162); 
+        case "pound": return chr_utf8(163); 
+        case "curren": return chr_utf8(164); 
+        case "yen": return chr_utf8(165); 
+        //... etc with all named HTML entities 
+    } 
+    return false; 
+} 
+    
+function htmlentities2utf8_old ($string) { // because of the html_entity_decode() bug with UTF-8 
+    $string = preg_replace_callback('~&(#(x?))?([^;]+);~', 'html_entity_replace', $string); 
+	return $string; 
+} 
+
+function htmlentities2utf8 ($string) {
+	return utf8_decode(mb_convert_encoding(str_replace("\xc2\xa0",' ',$string), 'UTF-8', 'HTML-ENTITIES'));
+}
+
 ?>

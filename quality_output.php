@@ -54,8 +54,8 @@ function getColor (idx) {
 <?php
 print "<div class=donebottom>";
 if ($sentidx > 0) {
-	$prevpage = "quality.php?id=".($id-1)."&sentidx=".($sentidx-1);
-	$nextpage = "quality.php?id=".($id+1)."&sentidx=".($sentidx+1);
+	$prevpage = "quality.php?id=".($id-1)."&taskid=$taskid&sentidx=".($sentidx-1);
+	$nextpage = "quality.php?id=".($id+1)."&taskid=$taskid&sentidx=".($sentidx+1);
 	
 	print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
 }

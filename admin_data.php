@@ -79,8 +79,8 @@ if (isset($taskid)) {
     		while (($line = fgets($handle)) !== false) {
     			$linenum++;
     			$query = "";
-        		#print $line ."<br>";
-    			$items = split("\t",$line);
+        		print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
+    			$items = split("\t", htmlentities2utf8($line));
     			if (count($items) < 3 || empty($items[1])) {
     				$errmsg = "WARNING! Parse error on file $oname: the language is missed.<br>\n[line: $linenum] $line\n";
     				break;
