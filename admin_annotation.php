@@ -24,6 +24,14 @@ limitations under the License.
 </div>
 
 <?php
+## UPDATE ANNOTATIONS
+if (isset($userid) && isset($taskid)) {
+	if ($mysession["status"] == "admin" && isset($action) && $action="remove") {
+		print "<script>alertify.log(\"Removing user annotations... (task: $taskid, user: $userid)\");</script>"; 
+  		deleteAnnotations($taskid,$userid);
+  	}
+ }
+ 
 	$hash_users = getUserStats();
 	$donecounter = getDoneUserStats();
 	$error_export ="";

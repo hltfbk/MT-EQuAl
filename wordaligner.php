@@ -9,6 +9,10 @@ header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
+if (!isset($mysession) || empty($mysession["status"]) || $mysession["taskid"]==0) {
+	header("Location: index.php");
+	#print "<script>window.open('index.php','_self');</script>";
+}
 
 $sentence_hash = getSentence($id, $taskid);
 if (!isset($sentence_hash["source"])) {
@@ -54,14 +58,7 @@ if (empty($mysession["status"])) {
 	print "<script>window.open('index.php','_self');</script>";
 }
 
-$errorlabel = "Errors";
-if (!isset($errorid)) {
-	$errorid = "";
-} else {
-	if (!empty($errorid) && $errorid >= 0) {
-		$errorlabel = $evalcodes["errors"][$errorid];
-	}
-}
+if ($mysession["taskistr"] != "") {
 ?>
 
 <span style="float: right; padding-right: 20px; padding-top: 9px; width:20%;">
@@ -69,23 +66,15 @@ if (!isset($errorid)) {
 		<button href="#collapse1" class="nav-toggle" style='float: right; margin-top: -4px;'>read more</button><div style="float: right; margin-right: 20px">Task instructions<br></div>
 		<div id="collapse1" style="display:none; font-size: 14px;">
 		<br><br>
-The initial alignment that you see was created by a computer, and it contains errors.  Please correct it by clicking on the squares.  Use black boxes to indicate which words are in correspondence.  If there is not a direct correspondence (as in the case of a loose translation) please use the dark gray boxes.  If any of the computer's initial suggestions are wrong please uncheck them. 
-<p>
-<table border=0><tr><td class=gray width=16>&nbsp</td><td>Agreement on possible alignment</td><tr>
-<tr><td class=black>&nbsp</td><td>Agreement on sure alignment</td><tr>
-<!--
-<tr><td class=blue>&nbsp</td><td>Disagreement on possible/null alignment</td><tr>
-<tr><td class=yellow>&nbsp</td><td>Disagreement on possible/sure alignment</td><tr>
-<tr><td class=red>&nbsp</td><td>Disagreement on sure/null alignment</td><tr>
--->
-</table>
-</p>
-	</div>	
+		<?php print $mysession["taskistr"]; ?>
+		</div>	
 </div>
 </span>
 
 <?php
-    print "<div style='display: block; width: 100%; float: left;left: 0px;'><div class=label>SOURCE: </div>" . showSentence($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
+}
+
+    print "<div style='display: block; width: 100%; float: left; left: 0px; margin-top: 5px'><div class=label>SOURCE: </div>" . showSentence($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
 	if (isset($sentence_hash["reference"])) {
 		print "<div class=labelref>REFERENCE: </div>" . showSentence ($sentence_hash["reference"][0], $sentence_hash["reference"][1], "reference")."<div>";;
 	}

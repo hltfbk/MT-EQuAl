@@ -75,6 +75,8 @@ if ($mysession["status"] == "admin") {
 				}	  
 			} else {
 				$userinfo = getUserInfo($id);
+				$sentlabel = "Update";
+				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=user','_self');\"  value='Cancel'> ";	
 			}
 			
 			if ($id == -1) {
@@ -85,12 +87,13 @@ if ($mysession["status"] == "admin") {
 					}
 				} else {
 					if ($userinfo["name"] == "") {
-						print "<small><font color=red>WARNING!</font> The name is mandatory.</small><br>";
+						print "<font color=red>WARNING!</font> The name is mandatory.<br>";
 					} else if ($userinfo["username"] == "") {
-						print "<small><font color=red>WARNING!</font> The username is mandatory.</small><br>";
+						print "<font color=red>WARNING!</font> The username is mandatory.<br>";
 					} else if ($userinfo["password"] == "") {
-						print "<small><font color=red>WARNING!</font> The password is mandatory.</small><br>";
+						print "<font color=red>WARNING!</font> The password is mandatory.<br>";
 					} 
+					$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=user','_self');\"  value='Cancel'> ";
 				}
 			}
 			if (!empty($query) && $id != -1) {
@@ -113,11 +116,11 @@ if ($mysession["status"] == "admin") {
 <form heigth=80 action="admin.php?section=user" method="post" enctype="multipart/form-data">
   <table border=0 cellspacing=0 cellpadding=4>
   <input type=hidden name=id value="<?php if (isset($id)) {echo $id;} else { echo '-1';} ?>">
-  <tr><td>Full name:</td><td><input TYPE=text name="name" size=30 value="<?php echo $userinfo['name']; ?>"></td></tr>
-  <tr><td>Login name:</td><td><input TYPE=text name="username" size=15 value="<?php echo $userinfo['username']; ?>"></td></tr>
-  <tr><td>E-mail:</td><td><input TYPE=text name="email" size=30 value="<?php echo $userinfo['email']; ?>"></td></tr>
-  <tr><td>Password:</td><td><input TYPE=text name="password" size=15 value="<?php echo $userinfo['password']; ?>"></td></tr>
-  <tr><td>User type: </td><td><select name="status">
+  <tr><th bgcolor=#ddd align=right>Full name:</th><td><input TYPE=text name="name" size=30 value="<?php echo $userinfo['name']; ?>"></td></tr>
+  <tr><th bgcolor=#ddd align=right>Login name:</th><td><input TYPE=text name="username" size=15 value="<?php echo $userinfo['username']; ?>"></td></tr>
+  <tr><th bgcolor=#ddd align=right>E-mail:</th><td><input TYPE=text name="email" size=30 value="<?php echo $userinfo['email']; ?>"></td></tr>
+  <tr><th bgcolor=#ddd align=right>Password:</th><td><input TYPE=text name="password" size=15 value="<?php echo $userinfo['password']; ?>"></td></tr>
+  <tr><th bgcolor=#ddd align=right>User type: </th><td><select name="status">
   <?php
 	foreach ($userTypes as $utype) {
 		print "<option value='$utype'";
@@ -128,8 +131,10 @@ if ($mysession["status"] == "admin") {
 	}
   ?>
   </select></td></tr>
-  <tr><td>
-  <tr><td valign=top>Tasks:</td><td><select multiple="multiple" name="utasks[]" size=8 style='font-size: 13px'>
+ <tr><th bgcolor=#ddd align=right>Team:</th><td><input TYPE=text name="team" value="<?php echo $userinfo['team']; ?>"></td></tr>
+ <tr><th bgcolor=#ddd align=right valign=top>Notes:</th><td> <textarea rows="4" cols="50" name="notes" value="<?php echo $userinfo['notes']; ?>"><?php if (isset($notes)) { echo $notes;} ?></textarea></td></tr>
+ <tr><td>
+  <tr><th bgcolor=#ddd align=right valign=top>Tasks:</th><td><select multiple="multiple" name="utasks[]" size=8 style='font-size: 13px'>
   <?php	
 	$utasks = split(" ",$userinfo['tasks']);
 	print "<option value='all'";
@@ -146,22 +151,20 @@ if ($mysession["status"] == "admin") {
 	}	
 ?>
   </select></td></tr>
- <tr><td>Team:</td><td><input TYPE=text name="team" value="<?php echo $userinfo['team']; ?>"></td></tr>
- <tr><td>Notes:</td><td> <textarea rows="4" cols="50" name="notes" value="<?php echo $userinfo['notes']; ?>"><?php if (isset($notes)) { echo $notes;} ?></textarea></td></tr>
-<tr><td>Activated:</td><td> <input type="checkbox" name="activated"
+<tr><th bgcolor=#ddd align=right>Activated:</th><td> <input type="checkbox" name="activated"
 <?php
 	if ($userinfo['activated'] == "Y") {
 		print " checked";
 	}
 ?>
 ></td></tr>
-<tr><td align=right colspan=2><?php echo $cancelbutton; ?> <input type="submit" name=update value="<?php echo $sentlabel; ?>"></td></tr>
+<tr><td align=right colspan=2><?php echo $cancelbutton; ?> <input type="submit" name=update value="<?php echo $sentlabel; ?>"><hr></td></tr>
 
   </table>
 </form>
 </div>
 
-<div style="float:left; border-left: 1px solid #000; padding: 2px; display: inline-block; position: relative; top: 10px">ALL USERs<hr>
+<div style="float: right; right: 0px; border-left: 1px solid #000; padding: 2px; display: inline-block; position: relative; top: 10px">ALL USERs<hr>
 <?php	
 	$userlist = getUserStats();
 	while (list ($uid,$uarr) = each($userlist)) {

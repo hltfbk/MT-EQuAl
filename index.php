@@ -31,16 +31,22 @@ if (!empty($login) && !empty($password)) {
 						"tasks"=>$row["tasks"],
 						"tasknow"=>"",
 						"taskid"=>0,
+						"tasksysnum"=>0,
+						"tasktype"=>"",
+						"taskranges"=>"",
 						"sessionid" => session_id());
 	} else {
 		print "<div class='error'><font color=red><b>Warning!</b></font> The login or password is not valid.</div>";
 	}
-} else if (!empty($task)) {
-	$mysession["tasknow"] = $task;
-	$mysession["taskid"] = getTaskID($task);
-	$mysession["tasksysnum"] = countTaskSystem($mysession["taskid"]);
-	$mysession["tasktype"] = getTaskType($mysession["taskid"]);
-	
+} else if (!empty($taskid)) {
+	$taskinfo = getTaskInfo($taskid);
+	$mysession["taskid"] = $taskid;
+	$mysession["tasknow"] = $taskinfo["name"];
+	$mysession["tasksysnum"] = countTaskSystem($taskid);
+	$mysession["tasktype"] = $taskinfo["type"];
+	$mysession["taskistr"] = $taskinfo["instructions"];
+	$mysession["taskranges"] = rangesJson2Array($taskinfo["ranges"]);
+	//print "taskranges: " .count($mysession["taskranges"]);
 } else {
 	if (!isset($mysession) || isset($logout)) {
 	    #echo "<script> alert('user anonymous!'); </script>";

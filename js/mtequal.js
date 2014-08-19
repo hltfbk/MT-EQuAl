@@ -15,70 +15,72 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+var RED = "rgb(255, 0, 0)";
 
-function fadeOut (el,i) {
+function fadeOut (el,color) {
 	el.style.cursor="normal";
-	if (el.style.backgroundColor != "red") {
-		el.style.backgroundColor=getColor(i);	
+	if (el.style.backgroundColor != RED) {
+		el.style.borderColor="#000";
+		el.style.backgroundColor=color;	
 	} 
 }
 
 function fadeIn (el) {
 	el.style.cursor="pointer";
-	if (el.style.backgroundColor != "red") {
+	if (el.style.backgroundColor != RED) {
+		el.style.borderColor=el.style.backgroundColor;
 		el.style.backgroundColor="#999";
 	} 
 }
 
-function duplicateAnnotation (obj, curruserid) {
-	item = obj.options[obj.selectedIndex].value
-	if (confirm("Do you really want to import the annotation from another user?")) {
-		window.open("admin.php?userid="+curruserid+"&copy="+item,"_top");
-  	} else {
-  		obj.options[0].selected = 'selected';
-  	}
-}
-
-function check(id,target_id,user_id,check,checkid,totcheck) {
-	//alert(id+","+target_id+", user_id:"+user_id+", check:"+check+", checkid:"+checkid+", totcheck:"+totcheck);
-	var radioEl = document.getElementById("check."+checkid+"."+check);
+function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
+	//alert("check() id:"+id+", target_id:"+target_id+", user_id:"+user_id+", val:"+val+", checkid:"+checkid+", totcheck:"+totcheck+ ", outid:"+outid+", totout:"+totout);
+	var radioEl = document.getElementById("check."+outid+"."+checkid);
 	var action="";
-    if (radioEl.style.backgroundColor == "red") {
-    	check=-1;
+    if (radioEl.style.backgroundColor == RED) {
+    	checkid=-1;
     	action="remove";
+    	radioEl.style.backgroundColor = radioEl.style.borderColor;
+		radioEl.style.borderColor = "#000";
     }
-    			
+    		
     $.ajax({
   		url: 'update.php',
   		type: 'GET',
-      	data: "id="+id+"&targetid="+target_id+"&userid="+user_id+"&check="+check+"&action="+action,
+      	data: "id="+id+"&targetid="+target_id+"&userid="+user_id+"&check="+val+"&action="+action,
   		async: false,
   		cache:false,
   		crossDomain: true,
   		success: function(response) {
   			if (response != "1") {
-  				//alert("update.php?id="+id+"&targetid="+target_id+"&userid="+user_id+"&check="+check+"&action="+action);
-  			
-  			
+  				//alert("update.php?id="+id+"&targetid="+target_id+"&userid="+user_id+"&check="+val+"&action="+action);
+  			 			
   				alert(response + " Sorry but an error occured saving data. Try again, please!");
   			} else {
   				//controllo se sono stati attivati almeno un radio per ogni check, se cos`i attivo il bottone DONE! 
-				for(var c=selectionFrom; c<=selectionTo; c++) {
+				for(var c=0; c<totcheck; c++) {
     				var checked = 0;
-      				radioEl = document.getElementById("check."+checkid+"."+c);
-      				if (c == check) {	  	  			
-						radioEl.style.backgroundColor = "red";
+      				radioEl = document.getElementById("check."+outid+"."+c);
+      				if (radioEl == null) {
+      					break;
+      				}
+      				if (c == checkid) {	  
+      					radioEl.style.borderColor = radioEl.style.backgroundColor;
+      					radioEl.style.backgroundColor = RED;
 					} else {
-						radioEl.style.backgroundColor=getColor(c);
+						if (radioEl.style.backgroundColor == RED) {
+							radioEl.style.backgroundColor = radioEl.style.borderColor;
+							radioEl.style.borderColor = "#000";
+						}
 					}
-  				}
+				}
   			}
   		},
   		error: function(response, xhr,err ) {
         	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
         	switch(xhr.status) {
 				case 200: 
-					alert("Data saved!");
+				alert("Data saved!");
 			}
 		}
   	});
@@ -86,23 +88,24 @@ function check(id,target_id,user_id,check,checkid,totcheck) {
   	
   	//controllo se attivare bottone done se c'e` almeno un assegnamento per ogni sistema
  	var checked = 0;
- 	for(var i=1; i<=totcheck; i++) {
-   		for(var c=selectionFrom; c<=selectionTo; c++) {
-   			radioEl = document.getElementById("check."+i+"."+c);
-   			if (radioEl != null && radioEl.style.backgroundColor == "red") {
+ 	for(var o=0; o<totout; o++) {	
+   		for(var c=0; c<totcheck; c++) {
+   			radioEl = document.getElementById("check."+o+"."+c);
+   			if (radioEl != null && radioEl.style.backgroundColor == RED) {
    				checked++;
    				break;
    			} else {
-   				resetEl = document.getElementById("reset."+i);
+   				resetEl = document.getElementById("reset."+o+"."+c);
    				if (resetEl != null) {
    					checked++;
    					break;
    				}
    			}
    		}
+   		
  	}
  	
- 	if (checked == totcheck) {
+ 	if (checked == totout) {
 		activateDone(0);
   	} else {
   		notDoneYet();
@@ -135,6 +138,20 @@ function reset(id,targetid,taskid,userid,errid,sentidx) {
 	                  
   	//$("#errors"+targetid).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",0,1,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",1,2,2);\">Too many errors</td><tr></table>");
   }	
+}
+
+function save_comment(id, comment) {
+	id = id.replace(/^comm/," ");
+	//alert("Saving.. " + id+" "+comment); //entities
+	$.ajax({
+		url: 'update.php',
+  		type: 'GET',
+		data: "id="+id+"&userid=<?php echo $userid;?>&comment="+comment,
+  		async: false,
+  		cache:false,
+  		crossDomain: true
+  	});
+  	return true;
 }
 
 function next(page) {
@@ -270,43 +287,22 @@ function showErrorMenu() {
     obj.style.visibility = 'hidden';
 }
 
-function resetAction(id) {
+function isSelected(id) {
 	var i = 1;
 	var el = document.getElementById(id+"."+i);
-	var foundRed=0;
 	while (el != null) {
     	if (el.style.backgroundColor != "") {
-    		foundRed=1;
-    		break;
+    		//alert(id+"."+i + " " +el.style.backgroundColor);
+    		return 1;
     	}
     	el = document.getElementById(id+"."+i+"-"+(i+1));
     	if (el != null && el.style.backgroundColor != "") {
-    		foundRed=1;
-    		break;
+    		return 1;
     	}
     	i++;
     	el = document.getElementById(id+"."+i);
-    }		
-    if (foundRed == 0) {
-    	$("#errortypes").html("<table bgcolor=lightyellow><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src='img/bullet_error.png'> No selection!&nbsp;</td></table>");
-    	return 1;
-    }
+    }	
+    
     return 0;
 }	
 	
-					
-function showAction(id,down,up,send,event) {	
-	if (resetAction(id) == 0) {
-		var eventHeader="onmouseover=\"this.className='highlight'\" onmouseout=\"this.className='whitebg'\"";
-		var eventAttrs="onmouseover=\"this.className='yellow'\" onmouseout=\"this.className='whitebg'\"";
-	$("#errortypes").html("<table width=200 border=0 cellspacing=0 cellpadding=2 style='background-color: #ccc; color: #000; font-size: 16px; box-shadow: 3px 3px 3px #888888; '><tr><td onclick=\"javascript:saveAnnotationRanges('"+id+"','"+down+"','"+up+"',true,'2');\" "+eventAttrs+">Reordering errors</td></tr><tr><td onclick=\"javascript:saveAnnotationRanges('"+id+"','"+down+"','"+up+"',true,'3');\" "+eventAttrs+">Lexicon errors</td></tr><tr><td onclick=\"javascript:saveAnnotationRanges('"+id+"','"+down+"','"+up+"',true,'4');\" "+eventAttrs+">Missing word(s)</td></tr><tr><td onclick=\"javascript:saveAnnotationRanges('"+id+"','"+down+"','"+up+"',true,'5');\" "+eventAttrs+">Morphology errors</td></tr><tr><td nowrap onclick=\"javascript:saveAnnotationRanges('"+id+"','"+down+"','"+up+"',true,'6');\" "+eventAttrs+">Casing and punctuation errors</td></tr><tr><td nowrap onclick=\"javascript:saveAnnotationRanges('"+id+"','"+down+"','"+up+"',true,'7');\" "+eventAttrs+">Superfluous</td></tr></table>");
-	}
-	moveObject('errortypes',event);
-    /*var obj = getObject('errortypes');
-   
-    if (obj) {
-        obj.style.visibility = 'visible';
-    }*/
-    return false;
-}
-

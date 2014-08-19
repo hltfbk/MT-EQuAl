@@ -79,7 +79,7 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
 
 </style>
 
-<body onclick="hide('task');">
+<body>
 <div style="margin-left:50px; width: 100%; position: fixed">
     	 	
         <ul id="menu" class="dropdown">
@@ -96,8 +96,8 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
 </form></li>
 		  <?php
 			} else {
-				if (isset($mysession["tasknow"])) {
-					print "<li><a href='index.php?task=". $mysession["tasknow"] ."'>".str_replace("_"," ",$mysession["tasknow"]) ."</a></li>";
+				if (isset($mysession["taskid"])) {
+					print "<li><a href='index.php?taskid=". $mysession["taskid"] ."'>".str_replace("_"," ",$mysession["tasknow"]) ."</a></li>";
 				}
 		   ?>
                      	
@@ -106,8 +106,9 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
                 <!-- <ul style="margin-left=120px; z-index:999;" id="task"> -->
                     <?php
                    	$tasks = getTasks($mysession["username"]);
-    				foreach ($tasks as $task) {
-                   		print "<li><a href='index.php?task=".$task[0]."'>".str_replace("_"," ",ucfirst($task[0]))."</a></li>";
+    				while (list ($tid,$val) = each($tasks)) {
+					#foreach ($tasks as $task) {
+                   		print "<li><a href='index.php?taskid=".$tid."'>".str_replace("_"," ",ucfirst($val[0]))."</a></li>";
                    	}                  		        	                	
                     ?>
                     
@@ -144,7 +145,7 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
             print "<h3>This is an end user interface for the evaluation of Machine Translation systems</h3>\n<p>Sign in, please!</p>";
 	} else if (empty($mysession["tasknow"])) {
 		if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
-			print "<br>Welcome " .$mysession["username"]."!";
+			#print "<br>Welcome " .$mysession["username"]."!";
 		} else {
 			print "<br><h4>Welcome! Choose a task to start your work.</h4>";
 		}

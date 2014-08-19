@@ -9,12 +9,16 @@ header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
+if (!isset($mysession) || empty($mysession["status"]) || $mysession["taskid"]==0) {
+	header("Location: index.php");
+	#print "<script>window.open('index.php','_self');</script>";
+}
 
 $sentence_hash = getSentence($id, $taskid);
-	if (!isset($sentence_hash["source"])) {
-		header("Location: index.php#".($id-1)); 
-		exit;
-	}
+if (!isset($sentence_hash["source"])) {
+	header("Location: index.php#".($id-1)); 
+	exit;
+}
 ?>
 
 <style>
@@ -59,9 +63,11 @@ if (!isset($errorid)) {
 	$errorid = "";
 } else {
 	if (!empty($errorid) && $errorid >= 0) {
-		$errorlabel = $evalcodes["errors"][$errorid];
+		$errorlabel = $mysession["taskranges"][$errorid][0];
 	}
 }
+
+if ($mysession["taskistr"] != "") {
 ?>
 
 <span style="float: right; padding-right: 20px; padding-top: 9px; width:20%;">
@@ -69,29 +75,14 @@ if (!isset($errorid)) {
 		<button href="#collapse1" class="nav-toggle" style='float: right; margin-top: -4px;'>read more</button><div style="float: right; margin-right: 20px">Task instructions<br></div>
 		<div id="collapse1" style="display:none; font-size: 14px;">
 		<br><br>
-In this task you are presented with a source sentence and some automatic translations. Moreover, since the source sentence is presented in isolation, a reference sentence is also given with the only purpose of disambiguating the context if necessary.
- You are asked to rate the quality of the automatic translations with respect to the source sentence on a scale from 1 to 5. <br>
- <br>
- Note that the values in the graded scale must reflect the usefulness of the translations with respect to the FAO end-user needs of understanding their website content, and thus should take into account both the readability of the translation and its appropriateness with respect to the information contained in the source text.<br>
-<br>
-The graded scale values can be interpreted as follows:<br>
-<ul>
-<ol start="1"> 
-<li><b>Useless</b>: does not capture the source meaning.</li>
-<li><b>Poor</b>: contains a few key words, but little meaning/information is present.</li>
-<li><b>Mediocre</b>: contains some meaning/information, but with serious errors.</li>
-<li><b>Useful</b>: captures most of the meaning/information, with only small errors.</li>
-<li><b>Human quality</b>: captures all of the source meaning/information and is perfectly understandable.</li>
-</ol>
-</ul>
-<br>
-If you think that two translations have the same quality, you can rate them equally.
-	</div>	
+		<?php print $mysession["taskistr"]; ?>
+		</div>	
 </div>
 </span>
 
 <?php
-    print "<div style='display: block; width: 100%; float: left;left: 0px;'><div class=label>SOURCE: </div>" .showSentence ($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
+}
+    print "<div style='display: block; width: 100%; float: left; left: 0px; margin-top: 5px'><div class=label>SOURCE: </div>" .showSentence ($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
 	if (isset($sentence_hash["reference"])) {
 		print "<div class=labelref>REFERENCE: </div>" . showSentence ($sentence_hash["reference"][0], $sentence_hash["reference"][1], "reference")."<div>";
 	}

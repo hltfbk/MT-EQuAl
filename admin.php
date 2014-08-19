@@ -26,9 +26,15 @@ header("Content-type: text/html; charset=utf-8");
 <title>MT-EQuAl: Administration page</title>
 <link href="css/mtequal.css" rel="styleSheet" type="text/css">
 
+<script type="text/javascript" src="js/alertify/alertify.min.js"></script>
+<link rel="stylesheet" href="js/alertify/alertify.core.css" />
+<link rel="stylesheet" href="js/alertify/alertify.default.css" />
+
 <script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
 <script type="text/javascript" src="js/mtequal.js"></script>
 <script>
+alertify.set({ buttonFocus: "cancel" });
+	
 function showUpload ($taskid, $type) {
 	el = document.getElementById("uploadpane");
 	if (el != null) {
@@ -47,30 +53,50 @@ function hideUpload () {
     }
 }
 function delTask (taskid,type) {
-	alert("WARNING! You are about to removing all information about this task, including the annotations of ALL THE USER.");
-	if (confirm("Do you really want to remove this task, its sentences and all annotations?")) {
-		window.open("admin.php?section=task&action=remove&id="+taskid, "_self");
-	}	
+	alertify.alert("WARNING! You are about to removing all information about this task, including the annotations of ALL THE USERS.");
+	alertify.confirm("Do you really want to REMOVE this task, and both all sentences and all annotations joint to it?", function (e) {
+        if (e) {
+			window.open("admin.php?section=task&action=remove&id="+taskid, "_self");
+		}
+	});	
 }
+
 function delUser (userid) {
 	alert("WARNING! You are about to removing all information about this user, including own annotations.");
-	if (confirm("Do you really want to remove this user?")) {
-		window.open("admin.php?section=user&action=remove&id="+userid, "_self");
-	}	
+	alertify.confirm("Do you really want to remove this user?", function (e) {
+        if (e) {
+        	window.open("admin.php?section=user&action=remove&id="+userid, "_self");
+		}
+	});	
 }
 function delSentences(taskid,type) {
 	if (type=="source") {
 		alert("WARNING! You are removing SOURCE sentences, so the alignment with reference and output ones could be not guaranteed any more.");
 	}
-	if (confirm("Do you really want to delete all "+type+" sentences of this task?")) {
-		window.open("admin.php?section=data&action=remove&taskid="+taskid+"&type="+type, "_self");
-	}	
+	alertify.confirm("Do you really want to delete all "+type+" sentences of this task?", function (e) {
+        if (e) {
+        	window.open("admin.php?section=data&action=remove&taskid="+taskid+"&type="+type, "_self");
+		}
+	});	
 }
 
 function delAnnotations(taskid, userid, username) {
-	if (confirm("Do you really want to delete the "+username+"'s annotations on the task "+taskid+"?")) {
-		window.open("admin.php?section=annotation&action=remove&taskid="+taskid+"&userid="+userid, "_self");
-	}	
+	alertify.confirm("Do you really want to delete the "+username+"'s annotations on the task "+taskid+"?", function (e) {
+        if (e) {
+        	window.open("admin.php?section=annotation&action=remove&taskid="+taskid+"&userid="+userid, "_self");
+		}
+	});	
+}
+
+function duplicateAnnotation (obj, curruserid) {
+	item = obj.options[obj.selectedIndex].value
+	alertify.confirm("Do you really want to import the annotation from another user?", function (e) {
+        if (e) {
+        	window.open("admin.php?userid="+curruserid+"&copy="+item,"_top");
+  		} else {
+  			obj.options[0].selected = 'selected';
+  		}
+  	});
 }
 
 function showSpinner() {
@@ -245,8 +271,8 @@ $(".ziplink").click(function (e) {
 <?php
 include("menu.php");
 if (isset($mysession) && !empty($mysession["status"]) && $mysession["status"] == "admin") {
-	$panels = array("TASK","DATA","USER","ANNOTATION","AGREEMENT");
-
+	$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
+	
 	$current_pane="task";
 	if (isset($section)) {
 		$current_pane=$section;
@@ -260,7 +286,7 @@ if (isset($mysession) && !empty($mysession["status"]) && $mysession["status"] ==
 		if (strtolower($pane) == $current_pane) {
 	 		print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
 		} else {
-		 	print"<li><a href=\"admin.php?section=".strtolower($pane)."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
+		 	print"<li><a href=\"admin.php?section=".strtolower(preg_replace("/ .*/","",$pane))."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
 		}
 	}
 ?>

@@ -28,41 +28,19 @@ if (isset($monitoring) && $monitoring == 1) {
  	}
 }
 ?>
-
-<script type="text/javascript">
-/* Default value of choice */
-var selectionFrom = 1;
-var selectionTo = 5;
-
-function getColor (idx) {
-	if (idx == 1) {
-		return "#FFFF99";
-	} else if (idx == 2) {
-		return "#D9FF99";
-	} else if (idx == 3) {
-		return "#B2FF99";
-	} else if (idx == 4) {
-		return "#8CFF99";
-	} 
-	return "#66FF99";
-}
-</script>
 </head>
 
 <body>
 <div id="errortypes" onclick="this.style.visibility='hidden';" style="font-size: 10px"></div>
 <?php
+$prevAndnextIDs = getPrevNext($taskid, $id);	
 print "<div class=donebottom>";
-if ($sentidx > 0) {
-	$prevpage = "quality.php?id=".($id-1)."&taskid=$taskid&sentidx=".($sentidx-1);
-	$nextpage = "quality.php?id=".($id+1)."&taskid=$taskid&sentidx=".($sentidx+1);
-	
-	print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
-}
+$prevpage = "quality.php?id=".$prevAndnextIDs[0]."&taskid=$taskid&sentidx=".($sentidx-1);
+$nextpage = "quality.php?id=".$prevAndnextIDs[1]."&taskid=$taskid&sentidx=".($sentidx+1);
+print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
 print "<button style='width: 170' id=done name=done onclick=\"javascript:doneAndIndex('$id','$userid',this);\" disabled></button> &nbsp;";
-if ($sentidx > 0) {
-	print "<button id=next name=next onclick=\"javascript:next('$nextpage');\">&nbsp;next »&nbsp;</button>";
-}		
+print "<button id=next name=next onclick=\"javascript:next('$nextpage');\">&nbsp;next »&nbsp;</button>";
+		
 print "</div>";
 if (empty($mysession["status"])) {
 	print "<script>window.open('index.php','_self');</script>";
@@ -71,7 +49,7 @@ if (empty($mysession["status"])) {
 if ($taskid > 0 && isset($id) && isset($userid)) {
 	
 	$hash_target = getSystemSentences($id,$taskid);
-	$i = 1;
+	$i = 0;
 	$checked = 0;
 	print "<div style='width: 100%; position: relative; height: 100%; margin-top:0px; margin-left: -28px;  padding-right: 46px; margin-bottom: auto; overflow-y: auto;'>";
 	if (count($hash_target) > 0) {
@@ -87,7 +65,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
 		#}
-		print "<div class=row><div class=label>OUTPUT <b>$i</b>: </div>$sent</div>";
+		print "<div class=row><div class=label>OUTPUT <b>".($i+1)."</b>: </div>$sent</div>";
 		//end output row
 		
 		//Add comment row
@@ -111,29 +89,30 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			}
 		}
 		<!-- fine comment -->
-		*/
-		
 		print "</div>";
 		//end comment row	
+		*/
 			
 		print "</div>";
 		//end cell (output+comment)
 		
 		//start error cell 
 		print "<td valign=top>";
-		
-		
 		print "<div class=cell><table cellspacing=4>";
-		for ($c=1; $c<=5; $c++) {
-			$class=$checkedcolors[$c];
-			if ($errors == $c) {
-				$class="red";
+		$ranges = $mysession["taskranges"];
+		$checkid = 0;
+		while (list ($val,$attrs) = each($ranges)) {
+			$color=$attrs[1];
+			$bordercolor="000";
+			if ($errors == $val) {
+				$color="F00";
+				$bordercolor=$attrs[1];
 				$checked++;
 			}
-			print "<td width=18 style='background: $class; border: solid #444 1px' id='check.$i.$c' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,".$c.");' onClick=\"check('$id','$sentence_id',$userid,$c,$i,".count($hash_target).");\">&nbsp;$c&nbsp;</td>";
+			print "<td width=18 style='background: #$color; border: 1px solid #$bordercolor' id='check.$i.$checkid' align=center onmouseover='fadeIn(this);' onmouseout='fadeOut(this,\"".$attrs[1]."\");' onClick=\"check('$id','$sentence_id',$userid,$val,$checkid,".count($ranges).",$i,".count($hash_target).");\">&nbsp;$val&nbsp;</td>";
+			$checkid++;
 		}
 		print "</table></div>";
-
 		print "</td>";
 		//end error cell
 		

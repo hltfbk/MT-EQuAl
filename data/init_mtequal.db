@@ -126,6 +126,8 @@ CREATE TABLE `task` (
   `name` varchar(100) NOT NULL,
   `type` enum('quality','errors','wordaligner') DEFAULT NULL,
   `descr` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `instructions` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `ranges` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `randout` enum('Y','N') DEFAULT 'N',
   `owner` int(10) NOT NULL,
   PRIMARY KEY (`id`),

@@ -17,7 +17,7 @@
 	header("Content-Disposition: attachment; filename=\"".$namefile.".zip\"");
 	header("Content-Transfer-Encoding: binary");
 	
-	if (!empty($mysession["status"]) && $mysession["status"] == "admin") {
+	if (!empty($mysession["status"]) && $mysession["status"] == "admin" || $userid=="3") {
 		//export CVD format
 		if ($format == "csv") {
 			exportCSV($userid);

@@ -62,21 +62,6 @@ function hideRange(el,sentid,range) {
     }
 }
 
-function save_comment(id, comment) {
-	id = id.replace(/^comm/," ");
-	//alert("Saving.. " + id+" "+comment); //entities
-	$.ajax({
-		url: 'update.php',
-  		type: 'GET',
-		data: "id="+id+"&userid=<?php echo $userid;?>&comment="+comment,
-  		async: false,
-  		cache:false,
-  		crossDomain: true
-  	});
-  	return true;
-}
-
-
 function removeAnnotation(id,targetid,ranges,errid) {
   //alert(id+","+ranges);
   if (confirm("Do you really want to cancel this annotation?")) {
@@ -107,7 +92,15 @@ $(document).ready(function() {
 	try {
 		$(document).bind("contextmenu", function(e) {
 			e.preventDefault();
-			$("#errortypes").css({ top: (e.pageY-2) + "px", left: (e.pageX-20) + "px" }).show(100);
+			if (OUTPUTID != null && isSelected(OUTPUTID) == 1) {	
+				$("#errortypes").css({ top: (e.pageY-2) + "px", left: (e.pageX-20) + "px" }).show(100);
+			} 
+			/*else {
+				$("#noselection").css({top: (e.pageY-2) + "px", left: (e.pageX-20) + "px" }).show(100);
+				var el = document.getElementById("noselection");
+    			el.style.visibility = "visible";
+
+			}*/
 		});
 		$(document).mouseup(function(e) {
 			var container = $("#errortypes");
@@ -128,43 +121,54 @@ $(document).ready(function() {
 </head>
 
 <body>
-<div id="errortypes" onclick="this.style.visibility='hidden';" style="font-size: 10px"></div>
+<div id="errortypes" onclick="this.style.visibility='hidden';" style="font-size: 10px">
+<table width=200 border=0 cellspacing=0 cellpadding=2 style='background-color: #ddd; color: #000; font-size: 16px; box-shadow: 3px 3px 3px #888; '>
 <?php
+	$ranges = $mysession["taskranges"];
+	while (list ($val,$attrs) = each($ranges)) {
+		if ($val > 1) {
+			print "<tr><td onclick=\"javascript:saveAnnotationRanges($val);\" onmouseover=\"this.className='yellow'\" onmouseout=\"this.className='whitebg'\">".$attrs[0]."</td></tr>";
+		}
+	}
+?>	
+</table>
+</div>
+
+<!--
+<div id="noselection" onclick="this.style.visibility='hidden';" style="position: fixed; visibility: hidden; box-shadow: 2px 2px 2px #888; font-size: 14px; padding-left: 20px; width: 140px; border: 1px solid #000; background: lightyellow">
+<img src='img/bullet_error.png'> No selection!
+</div>
+-->
+
+<?php
+$prevAndnextIDs = getPrevNext($taskid, $id);	
 print "<div class=donebottom>";
-if ($sentidx > 0) {
-	$prevpage = "errors.php?id=".($id-1)."&taskid=$taskid&sentidx=".($sentidx-1);
-	$nextpage = "errors.php?id=".($id+1)."&taskid=$taskid&sentidx=".($sentidx+1);
-	
-	print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
-}
+$prevpage = "errors.php?id=".$prevAndnextIDs[0]."&taskid=$taskid&sentidx=".($sentidx-1);
+$nextpage = "errors.php?id=".$prevAndnextIDs[1]."&taskid=$taskid&sentidx=".($sentidx+1);
+print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
 print "<button style='width: 170' id=done name=done onclick=\"javascript:doneAndIndex('$id','$userid',this);\" disabled></button> &nbsp;";
-if ($sentidx > 0) {
-	print "<button id=next name=next onclick=\"javascript:next('$nextpage');\">&nbsp;next »&nbsp;</button>";
-}		
+print "<button id=next name=next onclick=\"javascript:next('$nextpage');\">&nbsp;next »&nbsp;</button>";
+		
 print "</div>";
 if (empty($mysession["status"])) {
 	print "<script>window.open('index.php','_self');</script>";
 }
 
-$errorlabel = "Errors";
 if (!isset($errorid)) {
 	$errorid = "";
-} else {
-	if (!empty($errorid) && $errorid >= 0) {
-		$errorlabel = $evalcodes["errors"][$errorid];
-	}
-}
+} 
 
 if ($taskid > 0 && isset($id) && isset($userid)) {
-	
 	$hash_target = getSystemSentences($id,$taskid);
-	$i = 1;
+	$i = 0;
 	$checked = 0;
 	print "<div style='width: 100%; position: relative; height: 100%; margin-top:0px; margin-left: -28px;  padding-right: 46px; margin-bottom: auto; overflow-y: auto;'>";
 	if (count($hash_target) > 0) {
 	while (list ($sentence_id, $sentence_item) = each($hash_target)) {
 		$errors = getErrors($id,$sentence_id,$userid);
-		
+		if (count($errors) > 0) {
+			$checked++;
+		}
 		print "<table cellpadding=0 cellspacing=2 border=0> <td valign=top>";
 		print "<div class='cell'>";
 		//print "<div style='display: table-cell; float: left; width: 666px'>";
@@ -175,7 +179,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
 		#}
-		print "<div class=row><div class=label>OUTPUT <b>$i</b>: </div>$sent</div>";
+		print "<div class=row><div class=label>OUTPUT <b>".($i+1)."</b>: </div>$sent</div>";
 		//end output row
 		
 		//Add comment row
@@ -210,39 +214,44 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		//start error cell 
 		print "<td valign=top>";
 		print "<div class='cell right' id='errors".$sentence_id."'>";
-		if (count($errors) == 0 || isset($errors[0]) || isset($errors[1])) {
-			#no errors
-			$class="#ccc";
-			if (isset($errors[0])) {
-				$class="red";
-				$checked++;
-			}
-			print "<table cellspacing=4><tr><td style='background: $class; box-shadow: 2px 2px 2px #888888; border: solid #444 1px; font-size:13px' id='check.$i.0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('$id','$sentence_id',".$userid.",0,$i,".count($hash_target).");\" nowrap>No errors</td></tr>";
 		
-			#too many errors
-			$class="#ccc";
-			if (isset($errors[1])) {
-				$class="red";
-				$checked++;
-			}	
-			print "<tr><td style='background: $class; box-shadow: 2px 2px 2px #888888; border: solid #444 1px; font-size:13px' id='check.$i.1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('$id','$sentence_id',".$userid.",1,$i,".count($hash_target).");\">Too many errors</td><tr></table>";
-		} else {
-			if ($errors > 0) {
-				$checked++;
-			}
-			while (list ($errID, $errARRAY) = each($errors)) {
+		reset($ranges);
+		$checkid = 0;
+		while (list ($val,$attrs) = each($ranges)) {
+			if ($val <= 1) {
+				if (count($errors) == 0 || isset($errors[0]) || isset($errors[1])) {
+					$color="#".$attrs[1];
+					$bordercolor="#000";
+					if (isset($errors[$val])) {
+						$color="rgb(255, 0 ,0)";
+						$bordercolor="#".$attrs[1];
+					}
+					if ($val == 0) {
+						print "<table cellspacing=4>";
+					} 
+					print "<tr><td style='background: $color; box-shadow: 2px 2px 2px #888; border: 1px solid $bordercolor; font-size:13px' id='check.$i.$checkid' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,\"".$attrs[1]."\");' onClick=\"check('$id','$sentence_id',$userid,$val,$checkid,".count($ranges).",$i,".count($hash_target).");\" nowrap>".$attrs[0] ."</td></tr>";
+					if ($val == 1) {
+						print "</table>";
+					}
+				} 
+			$checkid++;
+			} 
+		}
+		
+			
+		while (list ($errID, $errARRAY) = each($errors)) {
 			  if ($errID > 1) {
-			  	$ranges = split(",",$errARRAY[0]);
+			  	$tokenids = split(",",$errARRAY[0]);
 				$texts = split("__BR__",$errARRAY[1]);
 				$annotations = "";
-				for($r=0; $r<count($ranges); $r++) {
+				for($r=0; $r<count($tokenids); $r++) {
 					$delicon = "";
 					if (count($ranges) > 1) {
 						if ($monitoring==0) {	
-							$delicon = "<a href=\"javascript:removeAnnotation($id,$sentence_id,'".$ranges[$r]."',$errID);\"><img src='img/delete.png' width=12></a>";
+							$delicon = "<a href=\"javascript:removeAnnotation($id,$sentence_id,'".$tokenids[$r]."',$errID);\"><img src='img/delete.png' width=12></a>";
 						}
 					}
-					$annotations .= "- $delicon<div style='display: inline; font-size:17px' onmouseover=\"javascript:showRange(this,$sentence_id,'".$ranges[$r]."');\" onmouseout=\"javascript:hideRange(this,$sentence_id,'".$ranges[$r]."');\">&nbsp;";
+					$annotations .= "- $delicon<div style='display: inline; font-size:17px' onmouseover=\"javascript:showRange(this,$sentence_id,'".$tokenids[$r]."');\" onmouseout=\"javascript:hideRange(this,$sentence_id,'".$tokenids[$r]."');\">&nbsp;";
 					if (trim($texts[$r]) == "") {
 						$annotations .= "<small>_SPACE_</small>";
 					} else {
@@ -250,18 +259,17 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 					}
 					$annotations .="</div><br>";
 				}
-				#print $evalcodes["errors"][$errID] .":<br>".$errARRAY[1]."<br>";
 				print "<div style='background: #dedede;'> ";
-				print "&nbsp;<i><small><b>".$evalcodes["errors"][$errID].":</b></small></i>";
+				print "&nbsp;<i><small><b>".$ranges[$errID][0].":</b></small></i>";
 				if ($monitoring==0) {	
-						print "&nbsp;&nbsp;&nbsp;&nbsp;<button id=reset.$i name=reset onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
+						print "&nbsp;&nbsp;&nbsp;&nbsp;<button id=reset.$i.$errID name=reset onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
 				}
 				print "</div>$annotations";
 				}
 			  }
-		}				
+			  
+					
 		print "</div>";	
-		
 		print "</td>";
 		//end error cell
 		
@@ -293,15 +301,16 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 var down = null;
 var WHITE = "";
 //var COLOR = WHITE;
-var COLOR = "red";
+var COLOR = "rgb(255, 0 ,0)";
 var ERRORID="<?php echo $errorid; ?>";
-var ERRORCOLOR = "red";
+var ERRORCOLOR = "rgb(255, 0 ,0)";
+var OUTPUTID = null;
 
 $('div').mousedown( function () {
 	if (this.id != "") {
 		down = this.id;
 	}
-	//$("#log").html(this.id);
+	$("#log").html(this.id);
 });
 	
 
@@ -319,11 +328,6 @@ $('div').mouseup( function (event) {
 		if (this.id.indexOf("error") == 0 || this.id.indexOf("comm") == 0) {
 			return;
 		}
-		
-		//if ((ERRORID == "" || ERRORID < 2)) {
-		//	alert("Select an error type from the menu, please!");
-		//	return;
-		//}
 		
 		var up = this.id;
 		//$("#log").html("SET " +down + " " +up);
@@ -348,10 +352,8 @@ $('div').mouseup( function (event) {
 			
 			changed = selectTokens(sentid, down, up); 
     		if (changed) {
-    			showAction(sentid,down,up,true,event);
-			} else {
-				resetAction(sentid);	
-    		}
+    			showAction(sentid, event);
+			} 
 	    	clearSelectedText();
     		down = null;
     		up = null;
@@ -359,13 +361,30 @@ $('div').mouseup( function (event) {
     }
 });
     
+function showAction(id, event) {	
+	if (OUTPUTID != null && OUTPUTID != id) {
+		cleanBgColor(OUTPUTID);
+	}
+	OUTPUTID = id;
+			
+	moveObject('errortypes',event); 
+    return false;
+}
+
 function cleanBgColor (sentid) {
 	i=1;
 	while (true) {
 		var el = document.getElementById(sentid+"."+i);
     	if (el != null) {
     		el.style.backgroundColor = WHITE;
+    	} else {
+    		break;
     	}
+    	//check spaces
+		el = document.getElementById(sentid+"."+i+"-"+(i+ 1));
+		if (el != null) {
+			el.style.backgroundColor = WHITE;
+		}
     	i++;	
 	}
 }
@@ -449,8 +468,7 @@ function clearSelectedText() {
 	}
 }
 
-function saveAnnotationRanges(index, down, up, send, errid) {
-	//alert(index+","+down+","+up+","+send);
+function saveAnnotationRanges(errid) {
 	ERRORID = errid;
 	if (ERRORID == "") {
 		ERRORID=errid;
@@ -462,7 +480,9 @@ function saveAnnotationRanges(index, down, up, send, errid) {
 	var entities = "";
 	var prevcolor = null;
 	while(true) {
-		el = document.getElementById(index+"."+elid);
+		//alert(OUTPUTID+" "+elid);
+		el = document.getElementById(OUTPUTID+"."+elid);
+		//alert(ERRORID+" "+OUTPUTID+"."+elid + " " + el.style.backgroundColor);
 		if (el == null) {
 			break;
 		} else {
@@ -482,7 +502,7 @@ function saveAnnotationRanges(index, down, up, send, errid) {
 		}
 		
 		//check spaces
-		el = document.getElementById(index+"."+elid+"-"+(elid+ 1));
+		el = document.getElementById(OUTPUTID+"."+elid+"-"+(elid+ 1));
 		if (el != null) {
 			if (el.style.backgroundColor != WHITE) {
 				if (prevcolor== null || prevcolor != el.style.backgroundColor) {
@@ -501,18 +521,17 @@ function saveAnnotationRanges(index, down, up, send, errid) {
     	elid++;	
 	}
 	
+	//alert(OUTPUTID+","+errid+", ranges: "+ranges);
 	ranges = ranges.replace(/^,\s*/,"");
+	
 	entities = entities.replace(/^__BR__\s*/, "");
 	
-	var errorlabel = "<?php echo $errorlabel ?>";
-	//alert ("errorlabel: " + errorlabel + "\nranges: " + ranges + "\nentities: " + entities);
 
-
- if (send) { // && trim(ranges) != "") { 		
+ //if (send) { // && trim(ranges) != "") { 		
  	$.ajax({
   url: 'update.php',
   type: 'GET',
-  data: "id=<?php echo $id;?>&targetid="+index+"&userid=<?php echo $userid;?>&check="+ERRORID+"&words="+entities.replace(/&nbsp;/gi," ")+"&tokenids="+ranges,
+  data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&words="+entities.replace(/&nbsp;/gi," ")+"&tokenids="+ranges,
   async: false,
   cache:false,
   crossDomain: true,
@@ -523,11 +542,9 @@ function saveAnnotationRanges(index, down, up, send, errid) {
   	} else {
 		//update list of annotated tokens		
 		if (entities.length > 0) {
-			window.open("errors_output.php?id=<?php echo $id;?>&sentidx=<?php echo $sentidx; ?>","_self");
-			//$("#errors"+index).html("<div style=' background-color: #dedede;'>&nbsp;<small><i><b>"+errorlabel+":</b></i></small> <button id=reset name=reset onclick=\"javascript:reset('<?php echo $id;?>','"+index+"','<?php echo $userid; ?>',"+ERRORID+");\">reset</button></div><table border=0 bgcolor=#eee style='font-size: 13px' cellspacing=0 cellpadding=1><tr><td>" + entities.replace(/<br>/g, "\\n").replace(/__BR__/g, "</td></tr><tr><td>") + "</td></tr></table>");
-			
+			window.open("errors_output.php?id=<?php echo $id;?>&sentidx=<?php echo $sentidx; ?>","_self");			
 		} else {
-			$("#errors"+index).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+index+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('<?php echo $userid;?>','"+index+"',<?php echo $userid;?>,0,0,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+index+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('<?php echo $userid;?>','"+index+"',<?php echo $userid;?>,1,1,2);\">Too many errors</td><tr></table>");
+			$("#errors"+OUTPUTID).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+OUTPUTID+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('<?php echo $userid;?>','"+OUTPUTID+"',<?php echo $userid;?>,0,0,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+OUTPUTID+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('<?php echo $userid;?>','"+OUTPUTID+"',<?php echo $userid;?>,1,1,2);\">Too many errors</td><tr></table>");
 		}		
 	}
   	
@@ -550,7 +567,7 @@ function saveAnnotationRanges(index, down, up, send, errid) {
     }
   });
   
-} 
+ 
 ERRORID = "";
 }
 

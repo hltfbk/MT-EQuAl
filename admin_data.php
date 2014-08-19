@@ -59,8 +59,7 @@ if (isset($taskid)) {
   if (isset($action) && $action="remove") {
   	if (isAnnotatedTask($taskid) == 0) {
   		deleteSentences($taskid,$type);
-  		//deleteFile($taskid,$type);
-  		$errmsg="DONE! The $type sentences have been removed.";
+		$errmsg="DONE! The $type sentences have been removed.";
   	} else {
   		print "<script>alert('Warning! This resource cannot be deleted because some annotations are joined to it.');</script>";
   	}

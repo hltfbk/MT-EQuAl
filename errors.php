@@ -9,6 +9,10 @@ header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
+if (!isset($mysession) || empty($mysession["status"]) || $mysession["taskid"]==0) {
+	header("Location: index.php");
+	#print "<script>window.open('index.php','_self');</script>";
+}
 
 $sentence_hash = getSentence($id, $taskid);
 if (!isset($sentence_hash["source"])) {
@@ -50,18 +54,9 @@ if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] =
 		return;
 	} 
 }
-if (empty($mysession["status"])) {
-	print "<script>window.open('index.php','_self');</script>";
-}
 
-$errorlabel = "Errors";
-if (!isset($errorid)) {
-	$errorid = "";
-} else {
-	if (!empty($errorid) && $errorid >= 0) {
-		$errorlabel = $evalcodes["errors"][$errorid];
-	}
-}
+
+if ($mysession["taskistr"] != "") {
 ?>
 
 <span style="float: right; padding-right: 20px; padding-top: 9px; width:20%;">
@@ -69,34 +64,14 @@ if (!isset($errorid)) {
 		<button href="#collapse1" class="nav-toggle" style='float: right; margin-top: -4px;'>read more</button><div style="float: right; margin-right: 20px">Task instructions<br></div>
 		<div id="collapse1" style="display:none; font-size: 14px;">
 		<br><br>
-In this task you are presented with a source sentence and 2 automatic translations. Since the source sentence is presented in isolation, a reference human translation is also given with the only purpose of better understanding the source text if necessary.<br>
-<br>
-For each automatic translation, you are asked to identify the type of errors present (if any) and mark their position in the translation. Remember that the automatic translations must be compared directly with the source text (and not with the reference translation).<br>
-<br> 
-The error typology is composed of four main classes:<br>
- 
-<ul>
-<ol start="1"> 
-<li><b>Reordering errors</b></li>
-<li><b>Lexicon errors</b></li>
-<dt>- a. addition of words<dt>
-<dt>- b. missing word(s) (i.e. source word dropped)</dt>
-<dt>- c. incorrect choice of words (including not recognized idioms)</dt>
-<dt>- d. misspelled words, diacritics errors</dt>
-<dt>- e. foreign source words passed through (including proper names)</dt>
-<li><b>Morphology errors</b></li>
-	<dt>- a. errors with conjugation, tense, modality, declension, concordance in number, gender, case.</dt>
-<li><b>Casing and punctuation errors.</b></li>
-	<dt>- a. capitalization errors (lowercase/uppercase)</dt>
-	<dt>- b. errors involving punctuation and parentheses.</dt>
-</ol>
-</ul>
-	</div>	
+		<?php print $mysession["taskistr"]; ?>
+		</div>	
 </div>
 </span>
 
 <?php
-    print "<div style='display: block; width: 100%; float: left;left: 0px;'><div class=label>SOURCE: </div>" .showSentence ($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
+}
+    print "<div style='display: block; width: 100%; float: left; left: 0px; margin-top: 5px'><div class=label>SOURCE: </div>" .showSentence ($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
 	if (isset($sentence_hash["reference"])) {
 		print "<div class=labelref>REFERENCE: </div>" . showSentence ($sentence_hash["reference"][0], $sentence_hash["reference"][1], "reference")."<div>";;
 	}

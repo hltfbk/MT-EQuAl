@@ -30,16 +30,14 @@ if (isset($monitoring) && $monitoring == 1) {
 
 <div id="errortypes" onclick="this.style.visibility='hidden';" style="font-size: 10px"></div>
 <?php
+$prevAndnextIDs = getPrevNext($taskid, $id);	
 print "<div class=donebottom>";
-if ($sentidx > 0) {
-	$prevpage = "wordaligner.php?id=".($id-1)."&taskid=$taskid&sentidx=".($sentidx-1);
-	$nextpage = "wordaligner.php?id=".($id+1)."&taskid=$taskid&sentidx=".($sentidx+1);
-	print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
-}
+$prevpage = "wordaligner.php?id=".$prevAndnextIDs[0]."&taskid=$taskid&sentidx=".($sentidx-1);
+$nextpage = "wordaligner.php?id=".$prevAndnextIDs[1]."&taskid=$taskid&sentidx=".($sentidx+1);
+print "<button id=prev name=prev onclick=\"javascript:next('$prevpage');\">&nbsp;« prev&nbsp;</button> &nbsp;";
 print "<button style='width: 170' id=done name=done onclick=\"javascript:doneAndIndex('$id','$userid',this);\" disabled></button> &nbsp;";
-if ($sentidx > 0) {
-	print "<button id=next name=next onclick=\"javascript:next('$nextpage');\">&nbsp;next »&nbsp;</button>";
-}		
+print "<button id=next name=next onclick=\"javascript:next('$nextpage');\">&nbsp;next »&nbsp;</button>";
+		
 print "</div>";
 if (empty($mysession["status"])) {
 	print "<script>window.open('index.php','_self');</script>";

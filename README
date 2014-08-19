@@ -18,11 +18,11 @@ OVERVIEW:
 -------------
 
 The annotation interface is created to carry out three annotation tasks, namely:
-− Task 1: Assessing automatic translation quality.
-− Task 2: Identification of errors in the automatic translations.
-− Task 3: Word alignment in the automatic translations.
+− Task 1: Translation quality rating.
+− Task 2: Annotation of translation errors.
+− Task 3: Word alignment.
 
-For more details about the task see the documentation on docs/ directory.
+For details about the tasks see the documentation in the docs/ directory.
 
 To work with the interface, you must use one of the supported browsers: Chrome, Safari, Firefox.
 
@@ -92,19 +92,21 @@ DATABASE SETUP:
 --------------------------
 
 - Create an empty MT-EQuAl database
-You will need the init_mtequal.db file located in the data/ directory and following these command:
+You will need the init_mtequal.db file located in the data/ directory and to type in these commands:
 $ mysqladmin -u root -p<PASSWORD> create mtequal
 $ mysql -u root -p<PASSWORD> mtequal < data/init_mtequal.db
  
-In the same way it is possible to restore a previous dump of the database following these command:
+In the same way it is possible to restore a previous dump of the database following this command:
 $ mysql -u root -p<PASSWORD> mtequal < data/dump/FILE.sql
 
 
 INPUT FILE FORMAT:
 -------------------
-The page admin.php allows to upload the sentences for a specific task. The format of this file must contain a three columns per line divided by a tabular space:
+The page admin.php allows you to upload the sentences for a specific task. It accepts several UTF-8 encoded csv files: one for the source sentences, one for the reference translation (optional), and one file for each of MT outputs to be evaluated.
+
+Each file must contain three columns per line, separated by a tabular space:
 - sentence ID;
 - language (en, ar, it, zh,...);
-- the sentence (using UTF8 encoding).
+- the sentence (using UTF-8 encoding).
 
 See some examples in the directory data/input/.
