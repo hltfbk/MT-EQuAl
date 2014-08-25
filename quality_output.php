@@ -9,23 +9,18 @@ header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
-#activate the Javascript functions
+if (!isset($userid)) {
+	$userid = $mysession['userid'];
+} 
 
-	if (!isset($userid)) {
-		$userid = $mysession['userid'];
-	} 
-	
-	if (!isset($taskid)) {
- 		$taskid = $mysession["taskid"];
- 	}
+if (!isset($taskid)) {
+	$taskid = $mysession["taskid"];
+}
 
 if (isset($monitoring) && $monitoring == 1) {
 	$sentidx=-1;
 } else {
 	$monitoring=0;
- 	if (!isset($sentidx)) {
- 		$sentidx=-1;
- 	}
 }
 ?>
 </head>
@@ -33,7 +28,10 @@ if (isset($monitoring) && $monitoring == 1) {
 <body>
 <div id="errortypes" onclick="this.style.visibility='hidden';" style="font-size: 10px"></div>
 <?php
-$prevAndnextIDs = getPrevNext($taskid, $id);	
+$prevAndnextIDs = getPrevNext($taskid, $id);
+if (!isset($sentidx) && $sentidx != -1) {
+ 	$sentidx = $prevAndnextIDs[2];
+}
 print "<div class=donebottom>";
 $prevpage = "quality.php?id=".$prevAndnextIDs[0]."&taskid=$taskid&sentidx=".($sentidx-1);
 $nextpage = "quality.php?id=".$prevAndnextIDs[1]."&taskid=$taskid&sentidx=".($sentidx+1);
@@ -48,7 +46,7 @@ if (empty($mysession["status"])) {
 
 if ($taskid > 0 && isset($id) && isset($userid)) {
 	
-	$hash_target = getSystemSentences($id,$taskid);
+	$hash_target = getSystemSentences($id, $taskid);
 	$i = 0;
 	$checked = 0;
 	print "<div style='width: 100%; position: relative; height: 100%; margin-top:0px; margin-left: -28px;  padding-right: 46px; margin-bottom: auto; overflow-y: auto;'>";
@@ -60,7 +58,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		//print "<div style='display: table-cell; float: left; width: 666px'>";
 		
 		//Add output row
-		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", "no",$sentence_id);
+		$sent = showSentence ($sentence_item[0], $sentence_item[1], "none", $sentence_item[2], $sentence_id);
 		//ripristino eventuali errori nei carattri con lastring vuota se non sono stati fatte delle anotazioni
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
@@ -102,14 +100,13 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		$ranges = $mysession["taskranges"];
 		$checkid = 0;
 		while (list ($val,$attrs) = each($ranges)) {
-			$color=$attrs[1];
-			$bordercolor="000";
+			$color="#".$attrs[1];
+			$bordercolor="4px solid #".$attrs[1];;
 			if ($errors == $val) {
-				$color="F00";
-				$bordercolor=$attrs[1];
+				$bordercolor="4px solid red";
 				$checked++;
 			}
-			print "<td width=18 style='background: #$color; border: 1px solid #$bordercolor' id='check.$i.$checkid' align=center onmouseover='fadeIn(this);' onmouseout='fadeOut(this,\"".$attrs[1]."\");' onClick=\"check('$id','$sentence_id',$userid,$val,$checkid,".count($ranges).",$i,".count($hash_target).");\">&nbsp;$val&nbsp;</td>";
+			print "<td width=18 style='padding: 1px; background: $color; border: $bordercolor; box-shadow: 2px 2px 2px #888;' id='check.$i.$checkid' align=center onmouseover='fadeIn(this);' onmouseout='fadeOut(this,\"".$attrs[1]."\");' onClick=\"check('$id','$sentence_id',$userid,$val,$checkid,".count($ranges).",$i,".count($hash_target).");\">".$attrs[0]."</td>";
 			$checkid++;
 		}
 		print "</table></div>";

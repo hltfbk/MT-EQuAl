@@ -9,6 +9,23 @@ header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
+if (isset($taskid)) {
+	if (isset($mysession) && $mysession["taskid"] != $taskid) {
+		$taskinfo = getTaskInfo($taskid);
+		$mysession["taskid"] = $taskid;
+		$mysession["tasknow"] = $taskinfo["name"];
+		$mysession["tasksysnum"] = countTaskSystem($taskid);
+		$mysession["tasktype"] = $taskinfo["type"];
+		$mysession["taskistr"] = $taskinfo["instructions"];
+		$mysession["taskranges"] = rangesJson2Array($taskinfo["ranges"]);
+		if (isset($_SESSION)) {
+			$_SESSION["mysession"] = $mysession;
+		} else {
+			session_register("mysession"); 
+		}	
+	}	
+}
+
 if (!isset($mysession) || empty($mysession["status"]) || $mysession["taskid"]==0) {
 	header("Location: index.php");
 	#print "<script>window.open('index.php','_self');</script>";

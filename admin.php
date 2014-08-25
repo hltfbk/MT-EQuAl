@@ -16,9 +16,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 include("config.php");
 include("functions.php");
+
 header("Content-type: text/html; charset=utf-8");
 ?>
 
@@ -53,7 +53,7 @@ function hideUpload () {
     }
 }
 function delTask (taskid,type) {
-	alertify.alert("WARNING! You are about to removing all information about this task, including the annotations of ALL THE USERS.");
+	alertify.alert("WARNING! You are about to removing all information about this task,<br>including the annotations of ALL THE USERS.");
 	alertify.confirm("Do you really want to REMOVE this task, and both all sentences and all annotations joint to it?", function (e) {
         if (e) {
 			window.open("admin.php?section=task&action=remove&id="+taskid, "_self");
@@ -62,7 +62,7 @@ function delTask (taskid,type) {
 }
 
 function delUser (userid) {
-	alert("WARNING! You are about to removing all information about this user, including own annotations.");
+	alertify.alert("WARNING! You are about to removing all information about this user,<br>including own annotations.");
 	alertify.confirm("Do you really want to remove this user?", function (e) {
         if (e) {
         	window.open("admin.php?section=user&action=remove&id="+userid, "_self");
@@ -270,6 +270,7 @@ $(".ziplink").click(function (e) {
 
 <?php
 include("menu.php");
+
 if (isset($mysession) && !empty($mysession["status"]) && $mysession["status"] == "admin") {
 	$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
 	

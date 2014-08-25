@@ -18,19 +18,34 @@ limitations under the License.
 
 <head>
 <style>
+li.row {
+	padding-top: 1px;
+	border-bottom: 1px solid #fff;
+}
+
 li.row:hover {
-	background:#cf4;
+	padding-top: 1px;
+	border-bottom: 1px solid #090;
+	background:#BAE3E0;
 }
 li.selected {
-	background:#cdcdcd;
+	background:#E0A4AA;
+	padding-right:4px;
+	border-bottom: 1px solid #5c0120;
+	font-size:14px;
+	color: #600;
 }
 </style>
 </head>
+
+<div style='margin: 10px; vertical-align: top; top: 0px; display: inline-block'>
+<div style='float: left; vertical-align: top; top: 0px; display: inline-block; padding-right: 0px; margin: 0px'>
 
 <?php
 if ($mysession["status"] == "admin") { 
 	$sentlabel="Create";
 	$cancelbutton="";
+	$visibility_tform="visible";
 	$tasklist = getTasks($mysession["username"]);	
 	$userinfo = array("name" => "",
 				  "username" => "",
@@ -46,7 +61,9 @@ if ($mysession["status"] == "admin") {
 		if (isset($action) && $action="remove") {		
 			if (removeUser($id) == 1) {
 				$id=-1;
-				print "<img width=15 src='img/done.png'> DONE! The user information and all done annotations by him have been removed correctly.<br>"; 	
+				print "<script>alertify.alert('The user information and all his annotations have been removed correctly.'); </script>"; 	
+				print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
+				$visibility_tform="hidden";
 			}
 		} else {
 			if ($id == -1 || (isset($update) && $update=="Update")) {
@@ -107,17 +124,18 @@ if ($mysession["status"] == "admin") {
 			
 			}
 		}
+	} else {
+		$id = "-1";
+		print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
+		$visibility_tform="hidden";
 	}
 ?>
 
-
-<div style='margin: 10px; vertical-align: top; top: 0px; display: inline-block'>
-<div style='margin: 10px; float: left; vertical-align: top; top: 0px; display: inline-block'>
-<form heigth=80 action="admin.php?section=user" method="post" enctype="multipart/form-data">
+<form id="tform" style='margin-right: -2px; border: 2px solid #5c0120; float:left; visibility: <?php echo $visibility_tform; ?>' name="tform" heigth=80 action="admin.php?section=user" method="post" enctype="multipart/form-data">
+  <input type=hidden name="id" value="<?php echo $id; ?>">
   <table border=0 cellspacing=0 cellpadding=4>
-  <input type=hidden name=id value="<?php if (isset($id)) {echo $id;} else { echo '-1';} ?>">
   <tr><th bgcolor=#ddd align=right>Full name:</th><td><input TYPE=text name="name" size=30 value="<?php echo $userinfo['name']; ?>"></td></tr>
-  <tr><th bgcolor=#ddd align=right>Login name:</th><td><input TYPE=text name="username" size=15 value="<?php echo $userinfo['username']; ?>"></td></tr>
+  <tr><th bgcolor=#ddd align=right>User name:</th><td><input TYPE=text name="username" size=15 value="<?php echo $userinfo['username']; ?>"></td></tr>
   <tr><th bgcolor=#ddd align=right>E-mail:</th><td><input TYPE=text name="email" size=30 value="<?php echo $userinfo['email']; ?>"></td></tr>
   <tr><th bgcolor=#ddd align=right>Password:</th><td><input TYPE=text name="password" size=15 value="<?php echo $userinfo['password']; ?>"></td></tr>
   <tr><th bgcolor=#ddd align=right>User type: </th><td><select name="status">
@@ -158,13 +176,13 @@ if ($mysession["status"] == "admin") {
 	}
 ?>
 ></td></tr>
-<tr><td align=right colspan=2><?php echo $cancelbutton; ?> <input type="submit" name=update value="<?php echo $sentlabel; ?>"><hr></td></tr>
+<tr><td align=right colspan=2><?php echo $cancelbutton; ?> <input type="submit" name=update value="<?php echo $sentlabel; ?>"></td></tr>
 
   </table>
 </form>
 </div>
 
-<div style="float: right; right: 0px; border-left: 1px solid #000; padding: 2px; display: inline-block; position: relative; top: 10px">ALL USERs<hr>
+<div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">ALL USERs<hr>
 <?php	
 	$userlist = getUserStats();
 	while (list ($uid,$uarr) = each($userlist)) {
@@ -173,13 +191,13 @@ if ($mysession["status"] == "admin") {
 			$tasknum = count(split(" ",$uarr[2]));
 		}
 		if (isset($id) && $id == $uid) {
-			print "<li type=square class=selected>";
+			print "<div style='position: absolute; padding-bottom: 3px; left:0px; background: #5c0120'>&nbsp;&nbsp;</div><li type=square class=selected>";
 		} else {
 			print "<li type=square class=row>";
 		}
 		print "<a href=\"javascript:delUser($uid);\"><img border=0 width=12 src='img/remove.png'></a> ";
 		if ($uarr[4] == "N") {
-			print "<s><font color=#999 title='this user is not active'>";
+			print "<s><font color=#666 title='this user is not active'>";
 		}
 		print $uarr[0];
 		if ($uarr[4] == "N") {

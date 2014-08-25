@@ -15,21 +15,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-var RED = "rgb(255, 0, 0)";
+var BUTTONSELCOLOR = "4px solid red";
+var BUTTONOVERCOLOR = "#999";
 
 function fadeOut (el,color) {
 	el.style.cursor="normal";
-	if (el.style.backgroundColor != RED) {
-		el.style.borderColor="#000";
+	if (el.style.border != BUTTONSELCOLOR) {
+		//el.style.borderColor="#000";
 		el.style.backgroundColor=color;	
 	} 
 }
 
 function fadeIn (el) {
 	el.style.cursor="pointer";
-	if (el.style.backgroundColor != RED) {
+	if (el.style.border != BUTTONSELCOLOR) {
 		el.style.borderColor=el.style.backgroundColor;
-		el.style.backgroundColor="#999";
+		el.style.backgroundColor=BUTTONOVERCOLOR;
 	} 
 }
 
@@ -37,11 +38,11 @@ function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
 	//alert("check() id:"+id+", target_id:"+target_id+", user_id:"+user_id+", val:"+val+", checkid:"+checkid+", totcheck:"+totcheck+ ", outid:"+outid+", totout:"+totout);
 	var radioEl = document.getElementById("check."+outid+"."+checkid);
 	var action="";
-    if (radioEl.style.backgroundColor == RED) {
+    if (radioEl.style.border == BUTTONSELCOLOR) {
     	checkid=-1;
     	action="remove";
-    	radioEl.style.backgroundColor = radioEl.style.borderColor;
-		radioEl.style.borderColor = "#000";
+    	radioEl.style.borderColor = radioEl.style.backgroundColor;
+    	radioEl.style.backgroundColor=BUTTONOVERCOLOR;
     }
     		
     $.ajax({
@@ -65,12 +66,11 @@ function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
       					break;
       				}
       				if (c == checkid) {	  
-      					radioEl.style.borderColor = radioEl.style.backgroundColor;
-      					radioEl.style.backgroundColor = RED;
+      					radioEl.style.backgroundColor = radioEl.style.borderColor;
+      					radioEl.style.border = BUTTONSELCOLOR;
 					} else {
-						if (radioEl.style.backgroundColor == RED) {
-							radioEl.style.backgroundColor = radioEl.style.borderColor;
-							radioEl.style.borderColor = "#000";
+						if (radioEl.style.border == BUTTONSELCOLOR) {
+							radioEl.style.borderColor = radioEl.style.backgroundColor;
 						}
 					}
 				}
@@ -91,7 +91,7 @@ function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
  	for(var o=0; o<totout; o++) {	
    		for(var c=0; c<totcheck; c++) {
    			radioEl = document.getElementById("check."+o+"."+c);
-   			if (radioEl != null && radioEl.style.backgroundColor == RED) {
+   			if (radioEl != null && radioEl.style.border == BUTTONSELCOLOR) {
    				checked++;
    				break;
    			} else {

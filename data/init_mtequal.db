@@ -105,6 +105,7 @@ CREATE TABLE `sentence` (
   `text` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `linkto` varchar(100) DEFAULT NULL,
   `lasttime` date NOT NULL,
+  `tokenization` int(2) NOT NULL, 
   PRIMARY KEY (`num`),
   KEY `id` (`id`),
   KEY `type` (`type`),

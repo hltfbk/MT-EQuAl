@@ -59,9 +59,10 @@ div.index {display: inline;
 	
 div.error {background: #fff; z-index:3; position:fixed; top:45px; left:100px; border-left: solid 1px #000; border-bottom: solid 1px #666; padding: 3px; font-size: 16px; margin-bottom: 0px; border-radius: 0px 0px 0px 15px;}
 div.sentindex {display: cell; margin-left: 36px; width: 60px; font-size: 13px; padding-top: 5px; text-align: right; vertical-align: top; padding-right: 4px; top: 10px}
-div.source {border: solid #bbb 1px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; padding-bottom: 8px; width: 575px; border-radius: 4px 4px 4px 4px;}
-div.reference {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; margin-top: 8px; padding-bottom: 10px;  width: 575px;}
-div.output {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 3px; margin-top: 8px; margin-right: 8px; width: 590px}
+div.source {border: solid #bbb 1px; font-weight: bold; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 4px; padding-bottom: 8px; width: 575px; border-radius: 4px 4px 4px 4px;}
+div.reference {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; color: #888; padding: 4px; margin-top: 8px; padding-bottom: 10px;  width: 575px;}
+div.output {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 3px; margin-top: 8px; margin-right: 8px; width: 590px; border: solid #aaa 1px; padding: 4px; top: -10px}
+div.none {margin-left: 2px; display: inline-block; font-family:Arial, Helvetica, Sans-Serif; font-size:15px; padding: 3px; margin-top: 8px; margin-right: 8px; width: 590px; border: solid #aaa 1px; padding: 4px; top: -10px}
 
 div.head {border-top: solid #000 1px;}
 div.rtl {direction:rtl;}
@@ -70,7 +71,7 @@ div.labelref {display: table-cell; white-space: nowrap; padding-top: 5px; paddin
 div.check {display: inline-block; margin-top: 13px; padding-right: 10px; width: 11px; text-align: center; vertical-align: top}
 div.donebottom {float: right; background: #cde; right: 0px; bottom: -3px; display: inline-block; position: fixed; text-align: left; font-size: 14px; padding: 5px; margin-right: 40px; border: solid #999 1px; border-radius: 15px 15px 0px 0px; z-index: 1000}
 div.bglgreen {background: lightgreen; }
-div.log {bottom: 10px; right: 20px; display: block; position: fixed; font-size: 10px}
+div.log {bottom: 30px; right: 20px; display: block; position: fixed; font-size: 10px}
 div.debug {float: right; right: 0px; bottom: 30px; background: lightyellow; padding: 3px; border: solid #999 1px; display: inline; position: fixed}
 
 div.orangeborderb {display: inline-block; cursor:pointer; cursor: hand; border-bottom: solid orange 2px;}

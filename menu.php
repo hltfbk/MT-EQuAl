@@ -105,8 +105,13 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
                 <ul style="margin-top: 0; z-index: 1001" >
                 <!-- <ul style="margin-left=120px; z-index:999;" id="task"> -->
                     <?php
+                    $tasktype="";
                    	$tasks = getTasks($mysession["username"]);
-    				while (list ($tid,$val) = each($tasks)) {
+    				while (list ($tid, $val) = each($tasks)) {
+    					if ($tasktype != $val[1]) {
+    						print "<li /><div style='margin:5px; color: #fff'><center>".$taskTypes[$val[1]]." tasks</center><hr></div>";
+    						$tasktype = $val[1];
+    					}
 					#foreach ($tasks as $task) {
                    		print "<li><a href='index.php?taskid=".$tid."'>".str_replace("_"," ",ucfirst($val[0]))."</a></li>";
                    	}                  		        	                	
@@ -125,6 +130,7 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
 	?>
             <li style="width: 100px"><a href="#">Help</a>
                 <ul style="margin-top: -10;">
+                	<li style="width: 90px"><a href="docs/MT-Equal_annotation_guidelines.pdf" target="mtequal_docs">Guidelines</a></li>
                     <li style="width: 90px"><a href="credits.php">Credits</a></li>
                 </ul>
             </li>
@@ -137,23 +143,7 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
         <img style="float:left;" alt="" src="img/menu/menu_right.png"/>
         </ul>
     </div>
-    <div style="margin-left: 60px">
-    <div class=index><center>
-    <?php
     
-    if (empty($mysession["status"])) {
-            print "<h3>This is an end user interface for the evaluation of Machine Translation systems</h3>\n<p>Sign in, please!</p>";
-	} else if (empty($mysession["tasknow"])) {
-		if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
-			#print "<br>Welcome " .$mysession["username"]."!";
-		} else {
-			print "<br><h4>Welcome! Choose a task to start your work.</h4>";
-		}
-	} 
-	?>
-	</center>
-	</div>
-</div>
 <div style='float: right; right: 0px; top:0px; display: inline-block; position: fixed;text-align: left; font-size: 12px; padding-top: 10px; padding-left: 10px; padding-right: 10px; padding-bottom: 10px; z-index: 1000'>
 <a href="credits.php"><img src="img/logo_FBK.gif" height=30 title="FBK" valign=bottom border=0> 
 &nbsp;<img valign=bottom src="img/hlt-logo.png" align=top height=40 title="HLT - Human Language Technology" border=0><br>

@@ -88,12 +88,23 @@ if ($mysession["taskid"] > 0 && isset($mysession["userid"])) {
 		}
 		print "<a name='$k'><div class=row><div class=sentindex>$done <strong>$i.</strong> </div>";
 		
-		print showSentence($arr[0], "<a href='".$mysession["tasktype"].".php?id=$k&sentidx=$i&taskid=".$mysession["taskid"]."'>".$arr[1]."</a>"); 
+		print showSentence($arr[0], "<a href='".$mysession["tasktype"].".php?id=$k&sentidx=$i&taskid=".$mysession["taskid"]."'>".$arr[1]."</a>","none",0); 
 		print "</div><p>";
 		$i++;
 	}
+} else {
+	print "<div style='margin-left: 60px'><div class=index><center>";
+	if (empty($mysession["status"])) {
+            print "<h3>This is an end user interface for the evaluation of Machine Translation systems</h3>\n<p>Sign in, please!</p>";
+	} else if (empty($mysession["tasknow"])) {
+		if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
+			print "<br>Welcome " .$mysession["username"]."!";
+		} else {
+			print "<br><h4>Welcome! Choose a task to start your work.</h4>";
+		}
+	} 
+	print "</center></div></div>";
 }
-
 ?>
 </div>
 </div>

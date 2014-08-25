@@ -9,23 +9,18 @@ header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
-#activate the Javascript functions
-
-	if (!isset($userid)) {
-		$userid = $mysession['userid'];
-	} 
+if (!isset($userid)) {
+	$userid = $mysession['userid'];
+} 
 	
-	if (!isset($taskid)) {
- 		$taskid = $mysession["taskid"];
- 	}
+if (!isset($taskid)) {
+	$taskid = $mysession["taskid"];
+}
 
 if (isset($monitoring) && $monitoring == 1) {
 	$sentidx=-1;
 } else {
 	$monitoring=0;
- 	if (!isset($sentidx)) {
- 		$sentidx=-1;
- 	}
 }
 ?>
 
@@ -142,6 +137,9 @@ $(document).ready(function() {
 
 <?php
 $prevAndnextIDs = getPrevNext($taskid, $id);	
+if ($sentidx != -1) {
+ 	$sentidx = $prevAndnextIDs[2];
+}
 print "<div class=donebottom>";
 $prevpage = "errors.php?id=".$prevAndnextIDs[0]."&taskid=$taskid&sentidx=".($sentidx-1);
 $nextpage = "errors.php?id=".$prevAndnextIDs[1]."&taskid=$taskid&sentidx=".($sentidx+1);
@@ -174,7 +172,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		//print "<div style='display: table-cell; float: left; width: 666px'>";
 		
 		//Add output row
-		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", "yes",$sentence_id);
+		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $sentence_id);
 		//ripristino eventuali errori nei carattri con lastring vuota se non sono stati fatte delle anotazioni
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
@@ -221,15 +219,14 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			if ($val <= 1) {
 				if (count($errors) == 0 || isset($errors[0]) || isset($errors[1])) {
 					$color="#".$attrs[1];
-					$bordercolor="#000";
+					$bordercolor="4px solid #".$attrs[1];;
 					if (isset($errors[$val])) {
-						$color="rgb(255, 0 ,0)";
-						$bordercolor="#".$attrs[1];
+						$bordercolor="4px solid red";
 					}
 					if ($val == 0) {
 						print "<table cellspacing=4>";
 					} 
-					print "<tr><td style='background: $color; box-shadow: 2px 2px 2px #888; border: 1px solid $bordercolor; font-size:13px' id='check.$i.$checkid' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,\"".$attrs[1]."\");' onClick=\"check('$id','$sentence_id',$userid,$val,$checkid,".count($ranges).",$i,".count($hash_target).");\" nowrap>".$attrs[0] ."</td></tr>";
+					print "<td style='padding: 1px; background: $color; border: $bordercolor; box-shadow: 2px 2px 2px #888; font-size:13px' id='check.$i.$checkid' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,\"".$attrs[1]."\");' onClick=\"check('$id','$sentence_id',$userid,$val,$checkid,".count($ranges).",$i,".count($hash_target).");\" nowrap>".$attrs[0] ."</td></tr>";
 					if ($val == 1) {
 						print "</table>";
 					}
@@ -301,9 +298,9 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 var down = null;
 var WHITE = "";
 //var COLOR = WHITE;
-var COLOR = "rgb(255, 0 ,0)";
+var COLOR = "red";
 var ERRORID="<?php echo $errorid; ?>";
-var ERRORCOLOR = "rgb(255, 0 ,0)";
+var ERRORCOLOR = "red";
 var OUTPUTID = null;
 
 $('div').mousedown( function () {
@@ -351,7 +348,7 @@ $('div').mouseup( function (event) {
 			}
 			
 			changed = selectTokens(sentid, down, up); 
-    		if (changed) {
+			if (changed) {
     			showAction(sentid, event);
 			} 
 	    	clearSelectedText();
@@ -397,7 +394,7 @@ function selectTokens (sentid, down, up) {
 	if (down.indexOf("-") >0 && down==up) {
 		var el = document.getElementById(sentid+"."+down);
 		if (el != null) {
-			//alert(down+" "+up+ " --- " +changed);
+			//alert(down+" "+up+ " --- " +el.style.backgroundColor+ " COLOR:" +COLOR+ " " +(el.style.backgroundColor == COLOR));
 			if (el.style.backgroundColor == COLOR) {
 				el.style.backgroundColor = WHITE;
 			} else {
@@ -405,8 +402,7 @@ function selectTokens (sentid, down, up) {
 				changed = true;
 			}
 		}
-	} else {
-		
+	} else {		
 	    for (var i=parseInt(down); i<=parseInt(up); i++) {
     		var el = document.getElementById(sentid+"."+i);
     		//alert(i + " " + up+"/"+down +"  " +el);

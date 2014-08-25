@@ -174,12 +174,12 @@ function getSourceSentenceIdMapping($task_id) {
 
 # get info about a source sentence: text, reference, ..
 function getSentence($num, $taskid) {
-	$query = "SELECT type,lang,text FROM sentence WHERE (num='$num' OR (linkto='$num' AND type='reference')) AND task_id='$taskid';";
+	$query = "SELECT type,lang,text,tokenization FROM sentence WHERE (num='$num' OR (linkto='$num' AND type='reference')) AND task_id='$taskid';";
 	$result = safe_query($query);	
 	$hash = array();
 	if (mysql_num_rows($result) > 0) {
 		while($row = mysql_fetch_array($result)) {
-			$hash[$row["type"]] = array($row["lang"],$row["text"]);
+			$hash[$row["type"]] = array($row["lang"],$row["text"], $row["tokenization"]);
 		}
 	}
 	return $hash;
@@ -209,6 +209,18 @@ function getErrors($sentence_num,$output_id,$user_id) {
 		}
 	}
 	return $hash_error;
+}
+
+function getUsedValues ($taskid) {
+	$values = array();
+	$query = "SELECT DISTINCT eval FROM annotation LEFT JOIN sentence ON annotation.sentence_num=sentence.num WHERE task_id=$taskid";
+	$result = mysql_query($query);	
+	if (mysql_num_rows($result) > 0) {
+		while($row = mysql_fetch_row($result)) {
+			array_push($values, $row[0]);
+		}
+	}
+	return $values;
 }
 
 #duplicate annotations: copy the annotations from taskid and fromuserid to the current userid (=curruserid)
@@ -471,12 +483,12 @@ function saveDone($sentence_num,$user_id,$completed) {
 
 # get info about the target sentences
 function getSystemSentences($id,$taskid) {
-	$query = "SELECT num,lang,text FROM sentence WHERE linkto='$id' AND task_id=$taskid AND type != 'reference' order by type";
+	$query = "SELECT num,lang,text,tokenization FROM sentence WHERE linkto='$id' AND task_id=$taskid AND type != 'reference' order by type";
 	$result = safe_query($query);
 	$hash = array();
 	if (mysql_num_rows($result) > 0) {
 		while ($row = mysql_fetch_array($result)) {
-			$hash[$row["num"]] = array($row["lang"],$row["text"]);
+			$hash[$row["num"]] = array($row["lang"], $row["text"], $row["tokenization"]);
 		}
 	}
 	
@@ -625,7 +637,7 @@ function getTasks($user) {
 			}
 		}
 	} else {
-		$query = "SELECT id,name,type FROM task ORDER BY type,id;";
+		$query = "SELECT id,name,type FROM task ORDER BY type, name";
 		$result = safe_query($query);	
 		if (mysql_num_rows($result) > 0) {
 			while ($row = mysql_fetch_row($result)) {
@@ -789,21 +801,25 @@ function getAgreementSentences ($taskid) {
 	return safe_query($query);	
 }
 
+#this function return the previous and next ids and the counter of a sentence
 function getPrevNext ($taskid, $id) {
 	$prevnext = array("","");
 	$source_sentences = getSourceSentences($taskid);
 	if (count($source_sentences) > 0) {
 		$prev="";
+		$i = 1;
 		while (list($k,$arr) = each($source_sentences)) {
 			if ($k == $id) {
 				if (list($next,$arr1) = each($source_sentences)) {
-					return array($prev, $next);
+					return array($prev, $next, $i);
 				}
 			}
 			$prev=$k;
+			$i++;
 		}
-		return array($prev,"");
+		return array($prev,"", $i);
 	}
+	return array("","", 0);
 }
 	
 ### EXPORT FUNCTIONS ###
@@ -1316,21 +1332,18 @@ function exportXML ($userid) {
 }
 
 ### PRESENTATION FUNCTION ###
-function showSentence ($lang, $text, $type = "", $tokenize = "no", $idx = "") {
+function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "") {
 	global $languages;
 	$spacebg = " class=token onmouseover=\"this.className='orangebg'\" onmouseout=\"this.className='whitebg'\"";
 	$tokenbg = " class=token onmouseover=\"this.className='orangeborderb'\" onmouseout=\"this.className='whiteborderb'\"";
 
-	if ($type=="" || $type=="source") {
-		$html="<div class='cell source";
-	} else {	
-		$html="<div class='cell $type";
-	}
+	$html="<div class='cell $type";
+	
 	if (isset($languages[$lang][2]) && $languages[$lang][2] == "rtl") {
 		$html.=" rtl";
 	}
-	if ($tokenize == "yes") {
-		$tokens = getTokens($lang, $text);
+	if ($type == "output") {
+		$tokens = getTokens($lang, $text, $tokenize);
 		$id=1;
 		$text = "";
 		foreach ($tokens as $token) {
@@ -1338,99 +1351,51 @@ function showSentence ($lang, $text, $type = "", $tokenize = "no", $idx = "") {
 			$text .= "<div id=$idx.$id"."-".($id+1)." $spacebg>&nbsp;</div>";
 			$id++;
 		}
-		
-		/*preg_match_all('/./u', $text, $tokenized_text);
-		$id=0;
-		if ($lang == "zh") {
-			$text = "";
+	}
+	 
+	$html.="'>$text</div>";
+	return $html;
+}
+
+# tokenization values:
+# 0: NO
+# 1: YES, using spaces only
+# 2: YES, using spaces and punctuations
+# 3: YES, character by character	
+function getTokens  ($lang, $text, $tokenization = 2) {
+	$tokens=array();
+	if ($tokenization == 0) {
+		array_push($tokens, trim($text));
+	} else {
+		preg_match_all('/./u', trim($text), $tokenized_text);
+		if ($tokenization == 3) {
 			foreach ($tokenized_text[0] as $ch) {
-				if (trim($ch) == "") {
-					$text .= "<div id=$idx.$id"."-".($id+1)." $spacebg>&nbsp;</div>";
-				} else {
-					$id++;
-					$text .="<div id=$idx.$id $tokenbg>$ch</div>";
+				if (trim($ch) != "") {
+					array_push($tokens, $ch);
 				}
 			}
 		} else {
-			$text="";
 			$token="";
-			$errors="";
 			foreach ($tokenized_text[0] as $ch) {
 				#print " ($ch)" . chr($ch);
 				#other special character
 				#ord($ch)=194 (No-break space) U+00A0 &#160; 
-				#if (ord($ch) == 194) 
-				#	$text .="<img src='img/check_error.png' width=16>";
-			
-				if ($ch == " " || ord($ch) == 194 || eregi("[!|\?|\"|'|-|/|$|,|:|;|\.|\(|\)|\[|\]|{|}]",$ch)) {
+				if (($tokenization==1 && ($ch == " " || ord($ch) == 194)) || 
+					($tokenization==2 && ($ch == " " || ord($ch) == 194 || eregi("[!|\?|\"|'|-|/|$|,|:|;|\.|\(|\)|\[|\]|{|}]",$ch)))) {
 					if (strlen($token) > 0) {
-						$id++;
-						#print "<li>$token";
-						$text .="<div id=$idx.$id $tokenbg>$token</div>";
+						array_push($tokens, $token);
 						$token="";
 					}
-					if (trim($ch) == "") {
-						$text .= "<div id=$idx.$id"."-".($id+1)." $spacebg>&nbsp;</div>";
-					} else {
-						$id++;
-						$text .= "<div id=$idx.$id $tokenbg>$ch</div>";
+					if (trim($ch) != "") {
+						array_push($tokens, $ch);
 					}
 				} else {
 					$token .="$ch";
-				}
+				}	
 			}
 			if (strlen($token) > 0) {
-				$id++;
-				$text .="<div id=$idx.$id $tokenbg>$token</div>\n";
+				array_push($tokens, $token);					
 			}
-			
-		}*/
-	}
-	if ($type == "source") {
-		$text = "<b>$text</b>";
-	} else if  ($type == "reference") {
-		$text = "<font color=#888>$text</font>";
-	} 
-	if ($type=="output") {
-		$html.="'><div style='border: solid #aaa 1px; padding: 4px; top: -10px'>$text</div></div>";
-	} else {
-		$html.="'>$text</div>";
-	}
-	return $html;
-}
-
-
-function getTokens  ($lang, $text) {
-	preg_match_all('/./u', trim($text), $tokenized_text);
-	$tokens=array();
-	if ($lang == "zh") {
-		foreach ($tokenized_text[0] as $ch) {
-			if (trim($ch) != "") {
-				array_push($tokens, $ch);
-			}
-		}
-	} else {
-		$token="";
-		foreach ($tokenized_text[0] as $ch) {
-			#print " ($ch)" . chr($ch);
-			#other special character
-			#ord($ch)=194 (No-break space) U+00A0 &#160; 
-			#if (ord($ch) == 194) 
-			#	$token .="<img src='img/check_error.png' width=16>";
-			if ($ch == " " || ord($ch) == 194 || eregi("[!|\?|\"|'|-|/|$|,|:|;|\.|\(|\)|\[|\]|{|}]",$ch)) {
-				if (strlen($token) > 0) {
-					array_push($tokens, $token);
-					$token="";
-				}
-				if (trim($ch) != "") {
-					array_push($tokens, $ch);
-				}
-			} else {
-				$token .="$ch";
-			}
-		}
-		if (strlen($token) > 0) {
-			array_push($tokens, $token);					
 		}
 	}
 	return $tokens;

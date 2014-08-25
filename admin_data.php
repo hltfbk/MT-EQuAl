@@ -78,7 +78,7 @@ if (isset($taskid)) {
     		while (($line = fgets($handle)) !== false) {
     			$linenum++;
     			$query = "";
-        		print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
+        		#print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
     			$items = split("\t", htmlentities2utf8($line));
     			if (count($items) < 3 || empty($items[1])) {
     				$errmsg = "WARNING! Parse error on file $oname: the language is missed.<br>\n[line: $linenum] $line\n";
@@ -88,7 +88,7 @@ if (isset($taskid)) {
         			$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". str_replace("'","\\'",$items[2]) ."', now());";
         		} else {   			
         			if (!empty($mappingsID2NUM[$items[0]])) {
-        				$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now());";
+        				$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),".$tokenization.");";
         			} else {
         				$errmsg = "WARNING! The source of sentence ".$items[0]." is missed. Add the source sentence aligned to this output sentence.<br>";
         			}
@@ -179,15 +179,16 @@ if (!empty($mysession["status"]) && $mysession["status"] == "admin") {
 <input type=hidden name=taskid value="" />
 <input type=hidden name=type value="" />
 
- Import sentences from CSV file <font size=-1><i>(size max. 2Mb)</i></font>:<br>
+ Import sentences from CSV file <font size=-1><i>(size max. <?php echo (int)(ini_get('upload_max_filesize')); ?>Mb)</i></font>:<br>
  <input type="file" id="filecsv" name="filecsv"> </br><br>
  (you can catch just <INPUT TYPE=text NAME=limit value="<?php if (isset($limit)) { echo $limit;} ?>" size=5> sentences from the file)
  
   </br><br>
-  Tokenize sentences: <select name="sysnum">
-	<option value='no'>NO
-	<option value='yes_space'>YES, using spaces only
-	<option value='yes_simple'>YES using spaces and other	
+  Tokenize sentences: <select name="tokenization">
+	<option value='0'>NO
+	<option value='1'>YES, using spaces only
+	<option value='2'>YES, using spaces and punctuations	
+	<option value='3'>YES, character by character	
 	</select>
 	</br></br>
   <input type="submit" name="Upload" value="Upload">	

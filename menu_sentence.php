@@ -5,6 +5,15 @@
             <li><div style="width:3	0;">&nbsp;</div></li>	        	
         </ul>
         <img style="float:left;" alt="" src="img/menu/menu_right.png"/>
-        <div style="display: inline-block; border-bottom: 1px solid #ddd; position: relative; width: 150px; top: 15px; padding-right: 20px; font-size: 14px">&nbsp;<i><?php if (isset($sentidx) && $sentidx != -1) {echo "sentence n. $sentidx";} ?></i></div>
+        
+        <div style="display: inline-block; border-bottom: 1px solid #ddd; position: relative; width: 150px; top: 15px; padding-right: 20px; font-size: 14px">&nbsp;<i>
+        <?php 
+        	if (isset($sentidx) && $sentidx != -1) {
+        		echo "sentence n. $sentidx";
+        	} else {
+        		echo "&nbsp;&nbsp;<a href='javascript:history.back()'>Go back</a>";
+        	}
+        ?>
+        </i></div>
 </div>    
    

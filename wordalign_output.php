@@ -31,6 +31,9 @@ if (isset($monitoring) && $monitoring == 1) {
 <div id="errortypes" onclick="this.style.visibility='hidden';" style="font-size: 10px"></div>
 <?php
 $prevAndnextIDs = getPrevNext($taskid, $id);	
+if ($sentidx != -1) {
+ 	$sentidx = $prevAndnextIDs[2];
+}
 print "<div class=donebottom>";
 $prevpage = "wordaligner.php?id=".$prevAndnextIDs[0]."&taskid=$taskid&sentidx=".($sentidx-1);
 $nextpage = "wordaligner.php?id=".$prevAndnextIDs[1]."&taskid=$taskid&sentidx=".($sentidx+1);
@@ -58,8 +61,8 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		//print "<div style='display: table-cell; float: left; width: 666px'>";
 		
 		//Add output row
-		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", "no",$sentence_id);
-		//ripristino eventuali errori nei carattri con lastring vuota se non sono stati fatte delle anotazioni
+		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $sentence_id);
+		//ripristino eventuali errori nei caratteri con lastring vuota se non sono stati fatte delle anotazioni
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
 		#}
@@ -349,7 +352,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 				}
 				document.write(" onmouseover=\"this.style.cursor='pointer'\" onClick=\"javascript:clickButton('<?php echo $id; ?>','<?php echo $sentence_id; ?>','<?php echo $userid; ?>','" + column + "','" + row + "')\">");
 				document.write('<img src= "'+ imageDirectory + 'clearpixel.gif" border="0" ');
-				document.write('title="' + targetWords[row] + ', ' + sourceWords[column]+ ' ['+column+','+row+']" ');
+				document.write('title="' + targetWords[row] + ', ' + sourceWords[column]+ ' ['+row+','+column+']" ');
 				document.write('title="' + targetWords[row] + ', ' + sourceWords[column]+ '" ');
 				document.write('width="' + size + '" height="' + size + '">');
 				document.write('</td>\n');	
