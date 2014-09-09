@@ -20,7 +20,7 @@ if (DEBUG == "yes") {
 }
 
 # user permission
-if (!empty($login) && !empty($password)) { 
+if (!empty($login) && isset($password)) { 
 	$query = "SELECT id,tasks,status FROM user WHERE username='$login' AND password='$password' AND activated='Y'";
 	$result = safe_query($query);	
 	if (mysql_num_rows($result) > 0) {

@@ -42,7 +42,7 @@ if (isset($ranges)) {
     		} else if (in_array($obj["val"], $alreadyUsedValues)) {
 				$disable_edit=" disabled='disabled'";
 				$tdcolor = " bgcolor='#FFE8BA'";
-				$warn = "<img src=\"img/lock_icon.png\" width=14 title=\"Consistency check! This value can't be changed because it is already used in the database.\">";
+				$warn = "<img src=\"img/lock_icon.png\" width=14 title=\"Consistency check! This value can't be changed because it is already used in the user's annotation.\">";
 			}
 		}
     	print "<TR>\n    <TD".$tdcolor."><INPUT type=\"text\" name=\"val[]\" value=\"".$obj["val"]."\" size=4 $disable_edit/>".$warn."</TD>\n";

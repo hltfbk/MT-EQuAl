@@ -90,15 +90,32 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
           ?>
             <li><form style="margin: 0px" method="post" name="form" action="index.php">
 <input type="hidden" name="sent" value="login">
-&nbsp;&nbsp;User: <input type="text" name="login" maxlength=30 size=10 value="">
+&nbsp;&nbsp;User: <input type="text" name="login" maxlength=30 size=10 value="<?php if (!empty($login)) {echo $login;} ?>">
 &nbsp;&nbsp;Password: <input type="password" name="password" maxlength=30 size=10>
 &nbsp;&nbsp;<input type=submit value="Login" name="auth">
 </form></li>
 		  <?php
 			} else {
+				$tasks = getTasks($mysession["userid"]);
+    			if (count($tasks) == 1) { 
+    				while (list ($tid, $val) = each($tasks)) {
+    					if ($mysession["taskid"] != $tid) {
+    						$taskinfo = getTaskInfo($tid);
+							$mysession["taskid"] = $tid;
+							$mysession["tasknow"] = $taskinfo["name"];
+							$mysession["tasksysnum"] = countTaskSystem($tid);
+							$mysession["tasktype"] = $taskinfo["type"];
+							$mysession["taskistr"] = $taskinfo["instructions"];
+							$mysession["taskranges"] = rangesJson2Array($taskinfo["ranges"]); 
+						}  					
+    				}
+    			}
+    			
 				if (isset($mysession["taskid"])) {
 					print "<li><a href='index.php?taskid=". $mysession["taskid"] ."'>".str_replace("_"," ",$mysession["tasknow"]) ."</a></li>";
 				}
+				$tasks = getTasks($mysession["userid"]);
+    			if (count($tasks) > 1) {
 		   ?>
                      	
 			<li style="width: 200px">Tasks
@@ -106,21 +123,19 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
                 <!-- <ul style="margin-left=120px; z-index:999;" id="task"> -->
                     <?php
                     $tasktype="";
-                   	$tasks = getTasks($mysession["username"]);
-    				while (list ($tid, $val) = each($tasks)) {
+                   	while (list ($tid, $val) = each($tasks)) {
     					if ($tasktype != $val[1]) {
     						print "<li /><div style='margin:5px; color: #fff'><center>".$taskTypes[$val[1]]." tasks</center><hr></div>";
     						$tasktype = $val[1];
     					}
-					#foreach ($tasks as $task) {
-                   		print "<li><a href='index.php?taskid=".$tid."'>".str_replace("_"," ",ucfirst($val[0]))."</a></li>";
+						print "<li><a href='index.php?taskid=".$tid."'>".str_replace("_"," ",ucfirst($val[0]))."</a></li>";
                    	}                  		        	                	
-                    ?>
-                    
+                    ?>                    
                 </ul>          		
-            </li>
-            
+            </li>           
     <?php
+    			} 
+    			
             	#if you are an admin
             	if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
             		print "<li><a href='admin.php'>Admin</a></li>";  	
@@ -128,10 +143,12 @@ ul.dropdown ul li a					{ display: block; padding: 10px;  border-bottom: dotted 
 
             }
 	?>
-            <li style="width: 100px"><a href="#">Help</a>
+            <li style="width: 240px"><a href="#">Help</a>
                 <ul style="margin-top: -10;">
-                	<li style="width: 90px"><a href="docs/MT-Equal_annotation_guidelines.pdf" target="mtequal_docs">Guidelines</a></li>
-                    <li style="width: 90px"><a href="credits.php">Credits</a></li>
+                	<li><a href="docs/MT-Equal_annotation_instructions.pdf" target="mtequal_docs">Annotation Instructions</a></li>
+                    <li style="width: 240px"><a href="docs/MT-Equal_project_management_instructions.pdf" target="mtequal_docs">Project Management Instructions</a></li>
+                    
+                    <li><a href="credits.php">Credits</a></li>
                 </ul>
             </li>
             <?php

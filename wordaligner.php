@@ -161,7 +161,7 @@ $(document).ready(function() {
 </script>	
 <?php
 if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
-	print "<script>\n  setTimeout(\"window.open('wordalign_output.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";
+	print "<script>\n  setTimeout(\"window.open('wordaligner.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";
 }
 ?>			
 </body>

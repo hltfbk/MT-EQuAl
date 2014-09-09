@@ -61,9 +61,12 @@ function removeUser($userid) {
 		if (safe_query($query) == 1) {
 			$query ="DELETE FROM done WHERE user_id=$userid";
 			if (safe_query($query) == 1) {
-				$query ="DELETE FROM user where id=$userid";
+				$query ="DELETE FROM usertask WHERE user_id=$userid";
 				if (safe_query($query) == 1) {
-					return 1;
+					$query ="DELETE FROM user WHERE id=$userid";
+					if (safe_query($query) == 1) {
+						return 1;
+					}
 				}
 			}
 		}	
@@ -81,9 +84,12 @@ function removeTask($taskid) {
 			if (safe_query($query) == 1) {
 				$query ="DELETE FROM sentence WHERE task_id=$taskid";
 				if (safe_query($query) == 1) {
-					$query ="DELETE FROM task where id=$taskid";
+					$query ="DELETE FROM usertask WHERE task_id=$taskid";
 					if (safe_query($query) == 1) {
-						return 1;
+						$query ="DELETE FROM task where id=$taskid";
+						if (safe_query($query) == 1) {
+							return 1;
+						}
 					}
 				}
 			}
@@ -92,6 +98,29 @@ function removeTask($taskid) {
 	return 0;
 }
 	
+function removeUserTask($userid, $taskid) {
+	if ($userid > 0) {
+		$query ="DELETE FROM usertask WHERE user_id=$userid";
+		if (safe_query($query) == 1) {
+			return 1;
+		}
+	} else if ($taskid > 0) {
+		$query ="DELETE FROM usertask WHERE task_id=$taskid";
+		if (safe_query($query) == 1) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+function addUserTask($userid, $taskid) {
+	$query ="INSERT INTO usertask VALUES ($userid,$taskid)";
+	if (safe_query($query) == 1) {
+		return 1;
+	}
+	return 0;
+}
+
 function getAnnotationTaskStats() {
 	$query = "select task_id,count(*) from annotation left join sentence on annotation.sentence_num=sentence.num group by task_id";
 	
@@ -225,23 +254,9 @@ function getUsedValues ($taskid) {
 
 #duplicate annotations: copy the annotations from taskid and fromuserid to the current userid (=curruserid)
 function copyAnnotations ($curruserid, $taskid, $fromuserid) {
-	$query="insert into annotation select sentence_num, output_id, $curruserid, eval, evalids, evaltext, now() from annotation left join sentence on annotation.sentence_num=sentence.num where user_id=$fromuserid and task_id=$taskid";
+	$query="INSERT INTO annotation SELECT sentence_num, output_id, $curruserid, eval, evalids, evaltext, now() FROM annotation LEFT JOIN sentence ON annotation.sentence_num=sentence.num WHERE user_id=$fromuserid AND task_id=$taskid";
 	mysql_query($query) or print ("ERROR! Records copying failed. (" . mysql_error() .")");	
 	return mysql_affected_rows();
-}
-
-function addUserTask ($userid, $taskid) {
-	$query = "SELECT tasks FROM user WHERE id=$userid";
-	$result = safe_query($query);
-	if (mysql_num_rows($result) == 1) {
-		$row = mysql_fetch_row($result);		
-		$tasks = $row[0];
-		$taskname = getTaskName($taskid);
-		if (strlen($taskname) > 0 && !strstr(" $tasks ", " $taskname ")) {
-			$query = "UPDATE user SET tasks='$tasks $taskname' WHERE id=$userid";
-			safe_query($query);
-		}
-	}
 }
 
 function countSentenceAnnotations($sentence_num,$user_id = null) {
@@ -252,26 +267,16 @@ function countSentenceAnnotations($sentence_num,$user_id = null) {
 	return mysql_num_rows(safe_query($query));
 }
 		
-function getAnnotatedTasks ($user_id) { 
+function getAnnotatedTasks ($userid) { 
 	$hash = array();
-	$query="select task_id,count(*) from annotation,sentence where annotation.sentence_num=sentence.num and user_id=$user_id group by task_id order by task_id";
+	#$query="select task_id,count(*) from annotation,sentence where annotation.sentence_num=sentence.num and user_id=$userid group by task_id order by task_id";
+	$query="select distinct task_id, count(*) from annotation left join sentence on annotation.sentence_num=sentence.num where user_id=$userid group by task_id";
 	$result = safe_query($query);	
 	if (mysql_num_rows($result) > 0) {
 		while ($row = mysql_fetch_row($result)) {
 			$hash[$row[0]] = $row[1];
 		}
-	}
-	$userinfo = getUserInfo($user_id);
-	if ($userinfo["status"] != "admin") {
-		foreach (split(" ",$userinfo["tasks"]) as $task) {
-			if (trim($task) != "") {
-				$tid = getTaskID(trim($task));
-				if (!array_key_exists($tid, $hash)) {
-					$hash[getTaskID(trim($task))] = 0;
-				}
-			} 
-		}
-	}
+	}    
 	return $hash;
 }
 
@@ -317,8 +322,7 @@ function saveQuality($source_id,$output_id,$user_id,$eval,$action="") {
 		}
 		$query = "DELETE FROM annotation WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id $evalclause";		
 	} else if (getQuality($source_id,$output_id,$user_id) < 0) {	
-		$query = "INSERT INTO annotation (sentence_num,output_id,user_id,eval,lasttime) VALUES ('$source_id','$output_id',$user_id,$eval,now())";
-		
+		$query = "INSERT INTO annotation (sentence_num,output_id,user_id,eval,lasttime) VALUES ('$source_id','$output_id',$user_id,$eval,now())";		
 	} else {
 		$query = "UPDATE annotation SET eval='$eval',lasttime=now() WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id;";
 	}
@@ -387,9 +391,11 @@ function saveErrors($source_id,$output_id,$user_id,$eval,$evalids="",$evaltext="
 			$evaltext = str_replace("\"","&quot;",stripslashes(trim($hash[$eval][1]."__BR__$evaltext")));	
 			$query = "UPDATE annotation SET evalids='".$hash[$eval][0].",$evalids',evaltext=\"$evaltext\",lasttime=now() WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval=$eval;";
 		}
+		#print "Q: $query<br>";
 		safe_query($query);
 		
 		$query = "DELETE FROM annotation WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval<2";
+		#print "Q2: $query<br>";
 		safe_query($query);	
 	}
 	
@@ -501,6 +507,15 @@ function getSystemSentences($id,$taskid) {
 
 }
 
+function getOutputSentence($sourceId, $type) {
+	$query = "SELECT num from sentence where linkto='".$sourceId. "' and type='".$type ."'";
+	$result = safe_query($query);	
+	if (mysql_num_rows($result) > 0) {
+		$row = mysql_fetch_row($result);
+		return $row[0];
+	}
+	return -1;
+}
 
 # get hash with uniq info about the available sentences for a task: sentence_num, text
 function getSourceSentences($taskid) {
@@ -619,23 +634,28 @@ function getTaskName($taskid) {
 }
 
 # get an array with tasks name
-function getTasks($user) {
+function getTasks($userid) {
 	$hash = array();
-	if ($user != null && strlen($user) > 0) {
-		$query = "SELECT tasks,status FROM user WHERE username='$user' OR id='$user'";
+	if ($userid != null && strlen($userid) > 0) {
+		$query = "SELECT tasks,status FROM user WHERE id='$userid'";
 		$result = safe_query($query);
 		if (mysql_num_rows($result) == 1) {
 			$row = mysql_fetch_row($result);
-			if ($row[1] == "admin") { 
+			if ($row[0] == "all" && $row[1] == "admin") { 
 				$hash = getTasks(null);
-			} else {
-				$tasks = split(" ",$row[0]);
-				foreach ($tasks as $taskname) {
-					$taskid = getTaskID($taskname);
-					$hash[$taskid] = array($taskname, getTaskType($taskid));
-				}
-			}
+			} 
 		}
+		$query = "SELECT task_id,name,type FROM usertask LEFT JOIN task ON usertask.task_id=task.id WHERE user_id='$userid'";
+		$result = safe_query($query);	
+		while ($row = mysql_fetch_row($result)) {
+			$hash[$row[0]] = array($row[1], $row[2]);
+		}
+		//add also own task
+		$query = "SELECT id,name,type FROM task WHERE owner='$userid'";
+		$result = safe_query($query);	
+		while ($row = mysql_fetch_row($result)) {
+			$hash[$row[0]] = array($row[1], $row[2]);
+		}		
 	} else {
 		$query = "SELECT id,name,type FROM task ORDER BY type, name";
 		$result = safe_query($query);	
@@ -797,7 +817,8 @@ function getAnnotationReport ($taskid) {
 
 
 function getAgreementSentences ($taskid) {
-	$query = "select lang,linkto,output_id,user_id,eval,evalids,text from annotation left join sentence on annotation.output_id=sentence.num where task_id=$taskid AND type != 'source' AND type != 'reference' order by linkto,output_id,user_id";
+	$query = "select lang,linkto,output_id,user_id,eval,evalids,text,tokenization from annotation left join sentence on annotation.output_id=sentence.num where task_id=$taskid AND type != 'source' AND type != 'reference' order by linkto,output_id,user_id,eval";
+	#print $query;
 	return safe_query($query);	
 }
 
@@ -834,7 +855,7 @@ function exportCSV ($userid) {
 	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mteval_".$date."/";
 	$intDir .= "/mteval";
 	
-	$query_clause = " status='user'";
+	$query_clause = " status='annotator'";
 	if (isset($userid) && $userid != null) {
 		$query_clause = " user.id='".$userid."'";
 		$intDir .= "_".$userid;	
@@ -903,18 +924,19 @@ function exportCSV ($userid) {
 				} else {				fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\ttokenIDs\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
 				}	
 				
-				$query = "SELECT output_id,id,type,eval,evalids,sentence_num,lang,text FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id;";
+				$query = "SELECT output_id,id,type,eval,evalids,sentence_num,lang,text,tokenization FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id;";
 				$result_annotation = safe_query($query);
 				saveLog($taskid . " " . $taskname . " " . mysql_num_rows($result_annotation) . " " . $query);
 				$last_id = "";
 				$src_text="";
 				#$last_count = 0;
 				while ($row_annotation = mysql_fetch_row($result_annotation)) {
+							
 					if ($last_id != $row_annotation[1]) {
 						$last_id = $row_annotation[1];
 							
 						#get source data
-						$query = "SELECT lang,text FROM sentence WHERE id='".$row_annotation[1]."' AND type='source'";
+						$query = "SELECT lang,text,tokenization FROM sentence WHERE id='".$row_annotation[1]."' AND type='source'";
 						$result_source = safe_query($query);
 						$row_source = mysql_fetch_row($result_source);
 						
@@ -922,7 +944,9 @@ function exportCSV ($userid) {
 					}
 						
 					$text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_annotation[7]));
+					$trg_tokens = getTokens(ereg_replace(".*_","", $row_annotation[6]), $text,$row_annotation[8]);
 					if (isset($hash_common_taskanns[$row_annotation[5]])) { 
+						$src_tokens = getTokens($row_source[0],$src_text,$row_source[2]);
 						if (preg_match("/quality/i", $tasktype)) {
 							/*if ($last_id != $row_annotation[1]) {
 								if ($last_id != "" && $last_count != $annotators_count) {
@@ -933,7 +957,7 @@ function exportCSV ($userid) {
 							} else {
 								$last_count++;
 							}*/
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t" . $row_annotation[2] ."\t". $row_annotation[3] ."\t".getTokensNum($row_annotation[6],$text)."\t$text\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n");
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t" . $row_annotation[2] ."\t". $row_annotation[3] ."\t".count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n");
 						} else if (preg_match("/errors/i", $tasktype)) {
 							$label = "";
 							if ($row_annotation[3] == 0) {
@@ -993,11 +1017,12 @@ function exportCSV ($userid) {
 							if ($row_annotation[3] > 1 && $strids == "") {
 								continue;
 							}
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". getTokensNum($row_annotation[6],$text)."\t".join(" ", getTokens(ereg_replace(".*_","", $row_annotation[6]), $text))."\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
+							
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".$src_text."\n"); 	
 						} else if (preg_match("/wordaligner/i", $tasktype)) {
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". getTokensNum($row_annotation[6],$text)."\t".join(" ", getTokens(ereg_replace(".*_","", $row_annotation[6]), $text))."\t".getTokensNum($row_source[0],$src_text)."\t".join(" ", getTokens(ereg_replace(".*_","", $row_annotation[6]), $src_text))."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".join(" ", $src_tokens)."\n"); 	
 						} else {
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". getTokensNum($row_annotation[6],$text)."\t$text\t".getTokensNum($row_source[0],$src_text)."\t".$src_text."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n"); 	
 						}
 						$count_ann++;
 						#print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
@@ -1059,13 +1084,12 @@ function exportXML ($userid) {
 	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mteval_".$date."/";
 	$intDir .= "/mteval";
 	
-	$query_clause = " status='user'";
+	$query_clause = " status='annotator'";
 	if (isset($userid) && $userid != null) {
 		$query_clause = " user.id='".$userid."'";
 		$intDir .= "_".$userid;	
 	}
-	$intDir .= "_".$date."/";
-		
+	$intDir .= "_".$date."/";	
 	if (!is_dir($intDir)) {
 		mkdir($intDir, 0777);
 	}
@@ -1073,12 +1097,13 @@ function exportXML ($userid) {
 	$tasks = getTasks($userid);
 	while (list ($taskid,$arrinfo) = each($tasks)) {
 		saveLog("TASK: ". $taskid . " ".$arrinfo[0]);
+		//print "TASK: ". $taskid . " ".$arrinfo[0];
 		$taskname=$arrinfo[0];
-		$tasksyscount=countTaskSystem ($taskid);
+		$tasksyscount=countTaskSystem($taskid);
 		
 		$tasktype=$arrinfo[1];
 		//count the number of annotators for the current task
-		$query = "SELECT id FROM user WHERE ".$query_clause." AND (tasks like '%".$taskname."%' OR tasks='all')";
+		$query = "SELECT id FROM user LEFT JOIN usertask ON user.id=usertask.user_id WHERE ".$query_clause." AND (task_id='".$taskid."' OR tasks='all')";
 		$result_annotators = safe_query($query);
 		$annotators_count = mysql_num_rows($result_annotators);
 			
@@ -1108,7 +1133,7 @@ function exportXML ($userid) {
 				$count_ann=0;
 				#print "<h3>USER: ".$row[0]."</h3> $filecsv";
 				
-				$query = "SELECT output_id,id,type,eval,evalids,sentence_num,lang,text FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id,type,eval;";
+				$query = "SELECT output_id,id,type,eval,evalids,sentence_num,lang,text,tokenization FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id,type,eval;";
 				$result_annotation = safe_query($query);
 				saveLog($taskid . " " . $taskname . " " . mysql_num_rows($result_annotation) . " " . $query);
 				$last_id = "";
@@ -1130,16 +1155,16 @@ function exportXML ($userid) {
 							$system_id = "";
 							
 							#get source data
-							$query = "SELECT lang,text FROM sentence WHERE id='".$row_annotation[1]."' AND type='source'";
+							$query = "SELECT lang,text,tokenization FROM sentence WHERE id='".$row_annotation[1]."' AND type='source'";
 							$result_source = safe_query($query);
 							$row_source = mysql_fetch_row($result_source);
 							fwrite($fh," <eval_item ID='".$last_id."' language_pair='".$row_source[0]."_".$row_annotation[6]."'>\n");
 					
 							$src_text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_source[1]));
 							if ($src_text != "") {
-								fwrite($fh,"  <source tok_num='".getTokensNum($row_source[0],$src_text)."'>\n    <text>".xml_escape($src_text)."</text>\n");
-								$sourcetokens = getTokens($row_source[0], $src_text);
-							
+								$sourcetokens = getTokens($row_source[0], $src_text, $row_source[2]);
+							fwrite($fh,"  <source tok_num='".count($sourcetokens)."'>\n    <text>".xml_escape($src_text)."</text>\n");
+								
 								#add tokens
 								if (preg_match("/wordaligner/i", $tasktype)) {
 									$i=1;
@@ -1170,8 +1195,8 @@ function exportXML ($userid) {
 									fwrite($fh,"    <comment>".preg_replace("/.+\t/","",$comments{$row_annotation[0]}) ."</comment>\n");
 								}									
 							}
-							fwrite($fh,"    <target tok_num='".getTokensNum($row_annotation[6],$text)."'>\n      <text>".xml_escape($text)."</text>\n");	
-							$tokens = getTokens(ereg_replace(".*_","",$row_annotation[6]), $text);
+							$tokens = getTokens(ereg_replace(".*_","",$row_annotation[6]), $text, $row_annotation[8]);
+							fwrite($fh,"    <target tok_num='".count($tokens)."'>\n      <text>".xml_escape($text)."</text>\n");	
 							
 							#add tokens
 							$i=1;
@@ -1181,7 +1206,7 @@ function exportXML ($userid) {
 								$i++;
 							}
 							fwrite($fh,"      </tokens>\n");								
-						}
+						
 						if (preg_match("/errors/i", $tasktype)) {
 							$label = "";
 							if ($row_annotation[3] == 0) {
@@ -1267,17 +1292,22 @@ function exportXML ($userid) {
 							$splitted_ids = split(" ",$row_annotation[4]);
 								
 							foreach ($splitted_ids as $id) {
-								fwrite($fh,"        <span>\n");
 								$xy = split("-", $id);
-								fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]])."</token>\n"); 	
-								fwrite($fh,"          <token from='target' id='".$xy[1]."'>".xml_escape($tokens[$xy[1]])."</token>\n"); 	
-								fwrite($fh,"        </span>\n");								
+								if (isset($sourcetokens[$xy[0]]) && isset($tokens[$xy[1]])) {
+									fwrite($fh,"        <span>\n");
+									fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]])."</token>\n"); 	
+									fwrite($fh,"          <token from='target' id='".$xy[1]."'>".xml_escape($tokens[$xy[1]])."</token>\n"); 	
+									fwrite($fh,"        </span>\n");
+								}
+																
 							}
 							fwrite($fh,"      </annotation>\n");										
 						}
-						
-						$count_ann++;
-						#print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
+					    fwrite($fh,"    </target>\n");	
+					  }
+					  $count_ann++;
+					  	
+					  #print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
 					} else { 
 						//saveLog("NO INTERCECTION: ". $row_annotation[1] ." ". $row[0] .": $query");
 					}
@@ -1327,35 +1357,75 @@ function exportXML ($userid) {
 		unlink($filezip);
 		unlink($intDir);
 		exit(0);
-	}
-	
+	}	
 }
 
 ### PRESENTATION FUNCTION ###
-function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "") {
+function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hashErrors = array(), $colorRange = array()) {
 	global $languages;
-	$spacebg = " class=token onmouseover=\"this.className='orangebg'\" onmouseout=\"this.className='whitebg'\"";
+	$spacebg = " class=token onmouseover=\"this.className='orangebg orangeborderb'\" onmouseout=\"this.className='whitebg whiteborderb'\"";
 	$tokenbg = " class=token onmouseover=\"this.className='orangeborderb'\" onmouseout=\"this.className='whiteborderb'\"";
-
-	$html="<div class='cell $type";
-	
-	if (isset($languages[$lang][2]) && $languages[$lang][2] == "rtl") {
-		$html.=" rtl";
+	$hashTokenidErrortype = array();
+	while (list ($errID, $errARRAY) = each($hashErrors)) {
+		$tokids = split("[ |,]", $errARRAY[0]);
+		//check the max number of lenght of the current segment of tokens
+		$maxUnderlines = 0;
+		foreach ($tokids as $tid) {
+			if (isset($hashTokenidErrortype{$tid})) {
+				$ccount = count($hashTokenidErrortype{$tid});
+				if ($ccount > $maxUnderlines) {
+					$maxUnderlines = $ccount;
+				}
+			}
+		}
+		
+		foreach ($tokids as $tid) {
+			if (!isset($hashTokenidErrortype{$tid})) {
+				$hashTokenidErrortype{$tid} = array();
+			}
+			while (count($hashTokenidErrortype{$tid}) < $maxUnderlines) {
+				array_push($hashTokenidErrortype{$tid}, "FFF");
+			}
+							
+			array_push($hashTokenidErrortype{$tid}, $colorRange{$errID}[1]);
+		}
+		#<div style='height: 4px'></div>
+		#$hashTokenidErrortype{$tid} = "<div style='background: #".$colorRange{$errID}[1]."; border: 0; width: auto; height: 4px'> </div>";
+		#print "$errID -- ".$errARRAY[0]."<br>";
 	}
 	if ($type == "output") {
 		$tokens = getTokens($lang, $text, $tokenize);
 		$id=1;
 		$text = "";
 		foreach ($tokens as $token) {
-			$text .= "<div id=$idx.$id $tokenbg>$token</div>";
-			$text .= "<div id=$idx.$id"."-".($id+1)." $spacebg>&nbsp;</div>";
+			$text .= "<div id=$idx.$id $tokenbg>$token";
+			if (isset($hashTokenidErrortype{$id})) {
+				foreach ($hashTokenidErrortype{$id} as $col) {
+					$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+				}
+			}
+			$text .= "</div>";
+			$spaceId=$id."-".($id+1);
+			$text .= "<div id=$idx.".$spaceId." $spacebg>&nbsp;";
+			if (isset($hashTokenidErrortype{$spaceId})) {
+				foreach ($hashTokenidErrortype{$spaceId} as $col) {
+					$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+				}
+			}
+			$text .= "</div>";
+			
 			$id++;
 		}
 	}
 	 
+	$html="<div class='cell $type";
+	if (isset($languages[$lang][2]) && $languages[$lang][2] == "rtl") {
+		$html.=" rtl";
+	}
 	$html.="'>$text</div>";
 	return $html;
 }
+
 
 # tokenization values:
 # 0: NO
@@ -1399,10 +1469,6 @@ function getTokens  ($lang, $text, $tokenization = 2) {
 		}
 	}
 	return $tokens;
-}	
-
-function getTokensNum ($lang, $text) {
-	return count(getTokens($lang, $text));
 }	
 	
 
@@ -1633,7 +1699,8 @@ function htmlentities2utf8_old ($string) { // because of the html_entity_decode(
 } 
 
 function htmlentities2utf8 ($string) {
-	return utf8_decode(mb_convert_encoding(str_replace("\xc2\xa0",' ',$string), 'UTF-8', 'HTML-ENTITIES'));
+	return str_replace("\xc2\xa0",' ',$string);
+	#return utf8_decode(mb_convert_encoding(str_replace("\xc2\xa0",' ',$string), 'UTF-8', 'HTML-ENTITIES'));
 }
 
 ?>

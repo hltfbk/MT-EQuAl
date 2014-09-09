@@ -92,7 +92,7 @@ function duplicateAnnotation (obj, curruserid) {
 	item = obj.options[obj.selectedIndex].value
 	alertify.confirm("Do you really want to import the annotation from another user?", function (e) {
         if (e) {
-        	window.open("admin.php?userid="+curruserid+"&copy="+item,"_top");
+        	window.open("admin.php?section=annotation&userid="+curruserid+"&copy="+item,"_top");
   		} else {
   			obj.options[0].selected = 'selected';
   		}
@@ -271,10 +271,14 @@ $(".ziplink").click(function (e) {
 <?php
 include("menu.php");
 
-if (isset($mysession) && !empty($mysession["status"]) && $mysession["status"] == "admin") {
-	$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
-	
-	$current_pane="task";
+if (isset($mysession) && !empty($mysession["status"])) {
+	if ($mysession["status"] == "admin") {
+		$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
+		$current_pane="task";
+	} else if ($mysession["status"] == "advisor") {
+		$panels = array("ANNOTATION");
+		$current_pane="annotation";
+	} 
 	if (isset($section)) {
 		$current_pane=$section;
 	}
@@ -284,7 +288,7 @@ if (isset($mysession) && !empty($mysession["status"]) && $mysession["status"] ==
 <ul id="tabs">
 <?php
 	foreach ($panels as $pane) {
-		if (strtolower($pane) == $current_pane) {
+		if (strtolower(preg_replace("/ .*/","",$pane)) == $current_pane) {
 	 		print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
 		} else {
 		 	print"<li><a href=\"admin.php?section=".strtolower(preg_replace("/ .*/","",$pane))."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";

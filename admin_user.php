@@ -46,7 +46,6 @@ if ($mysession["status"] == "admin") {
 	$sentlabel="Create";
 	$cancelbutton="";
 	$visibility_tform="visible";
-	$tasklist = getTasks($mysession["username"]);	
 	$userinfo = array("name" => "",
 				  "username" => "",
 				  "password" => "",
@@ -62,7 +61,7 @@ if ($mysession["status"] == "admin") {
 			if (removeUser($id) == 1) {
 				$id=-1;
 				print "<script>alertify.alert('The user information and all his annotations have been removed correctly.'); </script>"; 	
-				print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
+				print "<button style='position: absolute; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
 				$visibility_tform="hidden";
 			}
 		} else {
@@ -77,19 +76,15 @@ if ($mysession["status"] == "admin") {
 					$query .= ",$key=\"".$userinfo[$key]."\"";				
 				}
 				if (isset($utasks) && is_array($utasks)) {
-					$tasknames = "";
+					$userinfo["tasks"] = "";
 					foreach ($utasks as $tid) {
 						if ($tid == "all") {
-							$tasknames .= " all";
-						} else {
-							$tasknames .= " ".$tasklist[$tid][0]; 
+							$userinfo["tasks"] = "all";
+							break;
 						}
 					}
-					$userinfo["tasks"]  = trim($tasknames);
 					$query .= ",tasks=\"".$userinfo["tasks"]."\"";
-				} else {
-					$userinfo["tasks"] ="";
-				}	  
+				} 	  
 			} else {
 				$userinfo = getUserInfo($id);
 				$sentlabel = "Update";
@@ -118,6 +113,14 @@ if ($mysession["status"] == "admin") {
 				if (safe_query($query) != 1) {
 					print "<img src='img/database_error.png'> ERROR! This user has not been saved correctly.<br>"; 
 				}
+				removeUserTask($id, 0);
+				if (isset($utasks) && is_array($utasks)) {
+					foreach ($utasks as $tid) {
+						if ($tid != "all") {
+							addUserTask($id ,$tid);
+						}
+					}
+				}
 				//print "QUERY: $query<br>";
 				$sentlabel = "Update";
 				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=user','_self');\"  value='Cancel'> ";	
@@ -130,6 +133,7 @@ if ($mysession["status"] == "admin") {
 		$visibility_tform="hidden";
 	}
 ?>
+</div>
 
 <form id="tform" style='margin-right: -2px; border: 2px solid #5c0120; float:left; visibility: <?php echo $visibility_tform; ?>' name="tform" heigth=80 action="admin.php?section=user" method="post" enctype="multipart/form-data">
   <input type=hidden name="id" value="<?php echo $id; ?>">
@@ -152,35 +156,36 @@ if ($mysession["status"] == "admin") {
  <tr><th bgcolor=#ddd align=right>Team:</th><td><input TYPE=text name="team" value="<?php echo $userinfo['team']; ?>"></td></tr>
  <tr><th bgcolor=#ddd align=right valign=top>Notes:</th><td> <textarea rows="4" cols="50" name="notes" value="<?php echo $userinfo['notes']; ?>"><?php if (isset($notes)) { echo $notes;} ?></textarea></td></tr>
  <tr><td>
-  <tr><th bgcolor=#ddd align=right valign=top>Tasks:</th><td><select multiple="multiple" name="utasks[]" size=8 style='font-size: 13px'>
+  <tr><th bgcolor=#ddd align=right valign=top>Tasks:</th><td><i><font size=-1>(hold CTRL for multiple selection)</font></i><br><select multiple="multiple" name="utasks[]" size=8 style='font-size: 13px'>
   <?php	
-	$utasks = split(" ",$userinfo['tasks']);
+	$allTasks = getTasks($id);
 	print "<option value='all'";
-	if (in_array("all", $utasks)) {
+	if ($userinfo['tasks'] == "all") {
 		print " selected";
+		$utasks = array();
 	}
 	print "> all\n";
-  	while (list ($tid,$tarr) = each($tasklist)) {
+	$tasklist = getTasks($mysession["userid"]);
+  	while (list ($tid,$tarr) = each($tasklist)) {		
 		print "<option value='$tid'";
-		if (in_array($tarr[0], $utasks)) {
+		if (isset($allTasks[$tid])) {
 			print " selected";
 		}	
 		print "> ".$tarr[0];
 	}	
 ?>
   </select></td></tr>
-<tr><th bgcolor=#ddd align=right>Activated:</th><td> <input type="checkbox" name="activated"
+<tr><th bgcolor=#ddd align=right>Active:</th><td> <input type="checkbox" name="activated"
 <?php
 	if ($userinfo['activated'] == "Y") {
 		print " checked";
 	}
 ?>
 ></td></tr>
-<tr><td align=right colspan=2><?php echo $cancelbutton; ?> <input type="submit" name=update value="<?php echo $sentlabel; ?>"></td></tr>
+<tr><td align=right colspan=2 align=center><?php echo $cancelbutton; ?> <input type="submit" name=update value="<?php echo $sentlabel; ?>"></td></tr>
 
   </table>
 </form>
-</div>
 
 <div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">ALL USERs<hr>
 <?php	
@@ -188,7 +193,7 @@ if ($mysession["status"] == "admin") {
 	while (list ($uid,$uarr) = each($userlist)) {
 		$tasknum = $uarr[2];
 		if ($tasknum != "all") {
-			$tasknum = count(split(" ",$uarr[2]));
+			$tasknum = count(getTasks($uid));
 		}
 		if (isset($id) && $id == $uid) {
 			print "<div style='position: absolute; padding-bottom: 3px; left:0px; background: #5c0120'>&nbsp;&nbsp;</div><li type=square class=selected>";

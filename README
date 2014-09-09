@@ -95,8 +95,14 @@ DATABASE SETUP:
 You will need the init_mtequal.db file located in the data/ directory and to type in these commands:
 $ mysqladmin -u root -p<PASSWORD> create mtequal
 $ mysql -u root -p<PASSWORD> mtequal < data/init_mtequal.db
+
+The default MT-EQuAl username is "admin" with empty password (this user has administrator privileges). An essential step to secure your MT-EQuAl site is to change your admin user credentials, so to prevent your site from being hacked.  You can follow these simple steps:
+- login using "admin" user account;
+- once logged in go to Admin > User and edit the "admin" profile;
+- fill in all the fields (using a non obvious username and password); 
+- click the button "Update" to save your changes.
  
-In the same way it is possible to restore a previous dump of the database following this command:
+It is also possible to restore a previous dump of the database following this command:
 $ mysql -u root -p<PASSWORD> mtequal < data/dump/FILE.sql
 
 

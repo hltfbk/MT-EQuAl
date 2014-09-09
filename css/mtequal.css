@@ -74,13 +74,12 @@ div.bglgreen {background: lightgreen; }
 div.log {bottom: 30px; right: 20px; display: block; position: fixed; font-size: 10px}
 div.debug {float: right; right: 0px; bottom: 30px; background: lightyellow; padding: 3px; border: solid #999 1px; display: inline; position: fixed}
 
-div.orangeborderb {display: inline-block; cursor:pointer; cursor: hand; border-bottom: solid orange 2px;}
-div.whiteborderb {display: inline-block; cursor:pointer; border-bottom: white;}
+div.orangeborderb {display: inline-block; cursor:pointer; cursor: hand; border-top: solid orange 2px;}
+div.whiteborderb {display: inline-block; cursor:pointer; border-top: solid white 2px;}
 div.orangebg {display: inline-block; cursor: pointer; cursor: hand; background: orange;}
 div.whitebg {display: inline-block; cursor:default; background: white;}
 
-div.token {height: 20px; display: inline-block; bottom: 5px}
-div.token {background: 20px; display: inline-block; bottom: 5px}
+div.token {display: inline-block; margin-bottom: 0px; border-top: solid white 2px;}
 
 td.black { background-color: black; }
 td.white { background-color: #ccc; }

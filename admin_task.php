@@ -50,23 +50,27 @@ li.selected {
 </style>
 
 <SCRIPT language="javascript">
-	function addRange(taskid, type) {
- 		jsonRanges = getRanges(false);
-     	$.ajax({
-  			url: 'ranges.php',
-			type: 'GET',
-			data: {taskid: taskid, type: type, ranges: jsonRanges, action: "add"},
-			async: false,
-			cache:false,
-			crossDomain: true,
-			success: function(response) {
-				$("#divranges").html(response);
-			},
-  			error: function(response, xhr,err ) {
-				alert("Error!");
-			}
-  		});
-    }
+var DEFAULT_ERRORS_RANGES="[{\"val\": \"0\",\"label\": \"No errors\",\"color\": \"C8E8B8\"},{\"val\": \"1\",\"label\": \"Too many errors\",\"color\": \"F0D3A8\"}]";
+var DEFAULT_WORDALIGN_RANGES="[{\"val\": \"0\",\"label\": \"Possible alignment\",\"color\": \"BABABA\"},{\"val\": \"1\",\"label\": \"Sure alignment\",\"color\": \"000000\"}]";
+var DEFAULT_RANGES="[{\"val\": \"\",\"label\": \"\",\"color\": \"FFFFFF\"}]";
+
+function addRange(taskid, type) {
+	jsonRanges = getRanges(false);
+   	$.ajax({
+		url: 'ranges.php',
+		type: 'GET',
+		data: {taskid: taskid, type: type, ranges: jsonRanges, action: "add"},
+		async: false,
+		cache:false,
+		crossDomain: true,
+		success: function(response) {
+			$("#divranges").html(response);
+		},
+  		error: function(response, xhr,err ) {
+			alert("Error!");
+		}
+  	});
+}
         
 function getRanges(checkOnly) {
    	var jsonRanges="";
@@ -158,7 +162,8 @@ function defaultRanges(type) {
     	return;
 	} else {
 		jsonRanges = getRanges(true);
-		if (jsonRanges != "[]" && jsonRanges != '[{"val": "","label": "","color": "FFFFFF"}]') {
+		if (jsonRanges != "[]" && jsonRanges != DEFAULT_RANGES && 
+			jsonRanges != DEFAULT_ERRORS_RANGES && jsonRanges != DEFAULT_WORDALIGN_RANGES) {
 			if (!confirm("Do you want to discard your customization and use the default one?")) {
 				return;
 			}
@@ -182,9 +187,12 @@ function setMandatoryRanges(selectel) {
 	var type = selectel.options[selectel.options.selectedIndex].value;
 	
 	if (type == "errors") {
-		showRanges(-1, type, "[{\"val\": \"0\",\"label\": \"No errors\",\"color\": \"C8E8B8\"},{\"val\": \"1\",\"label\": \"Too many errors\",\"color\": \"F0D3A8\"}]");
+		showRanges(-1, type, DEFAULT_ERRORS_RANGES);
 	} else if (type == "wordaligner") {
-		showRanges(-1, type, "[{\"val\": \"0\",\"label\": \"Possible alignment\",\"color\": \"BABABA\"},{\"val\": \"1\",\"label\": \"Sure alignment\",\"color\": \"000000\"}]");
+		showRanges(-1, type, DEFAULT_WORDALIGN_RANGES);
+	} else {
+		showRanges(-1, type, "");
+		addRange(-1,'');
 	}
 }
 
@@ -216,6 +224,7 @@ function send(form) {
 <div style='float: left; vertical-align: top; top: 0px; display: inline-block; padding-right: 0px; margin: 0px'>
 
 <?php
+
 /*if (isset($_POST['txt'])) {
 	$txtbox = $_POST['txt'];
 	$color = $_POST['color'];
@@ -247,9 +256,11 @@ if ($mysession["status"] == "admin") {
 		if (isset($action) && $action="remove") {		
 			if (removeTask($id) == 1) {
 				$id=-1;
-				print "<script>alertify.alert('The task information and all annotations refering to it have been removed correctly.'); </script>"; 	
-				print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
-				$visibility_tform="hidden";
+				print "<script>alert('The task information and all annotations refering to it have been removed.'); \nwindow.open(\"admin.php?section=task\", \"_self\");</script>"; 	
+				##print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
+				##$visibility_tform="hidden";
+			} else {
+				print "<script>alertify.alert('ERROR! The task hasn't been removed correctly.'); </script>"; 
 			}
 		} else {
 			if ($id == -1 || (isset($update) && $update=="yes")) {
@@ -288,7 +299,9 @@ if ($mysession["status"] == "admin") {
 			if (!empty($query) && $id != -1) {
 				$query = "UPDATE task SET ".substr($query, 1). " WHERE id=$id";
 				if (safe_query($query) != 1) {
-					print "<img src='img/database_error.png'> ERROR! This user has not been saved correctly.<br>"; 
+					print "<script>alertify.alert('ERROR! This user has not been saved correctly.');</script>"; 	
+				} else {
+					print "<script>window.open(\"admin.php?section=task&id=$id\", \"_self\");</script>"; 
 				}
 				//print "QUERY: $query<br>";
 				$sentlabel = "Update";
@@ -302,6 +315,7 @@ if ($mysession["status"] == "admin") {
 		$visibility_tform="hidden";
 	}
 ?>
+</div>
 
 <form id="tform" style='margin-right: -2px; border: 2px solid #5c0120; float:left; visibility: <?php echo $visibility_tform; ?>' name="tform" heigth=80 action="admin.php?section=task" method="post" enctype="multipart/form-data">
   <input type=hidden name="id" value="<?php echo $id; ?>">
@@ -358,17 +372,16 @@ if (count($alreadyUsedValues) == 0) {
     <div id="divranges"></div>
 </td></tr>
 
-<tr><td align=right colspan=2><div style="height: 100%; display: inline; top: 0px"><?php echo $cancelbutton; ?> 
+<tr><td align=right colspan=2 align=center><div style="height: 100%; display: inline; top: 0px"><?php echo $cancelbutton; ?> 
 <!-- <input type="submit" name=update value="<?php echo $sentlabel; ?>"> -->
 <button onclick="send(document.tform)"><?php echo $sentlabel; ?></button></div></td></tr>
   </table>
 
 </form>
-</div>
 
 <div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">
 <?php	
-	$tasks = getTasks($mysession["username"]);
+	$tasks = getTasks($mysession["userid"]);
 	$ttype = "";
 	while (list ($tid,$tarr) = each($tasks)) {
 		if ($tarr[1] != $ttype) {

@@ -66,7 +66,11 @@ if (isset($taskid)) {
   } else {
   	$insert=0;
   	$ftmp = $_FILES['filecsv']['tmp_name'];
+  	
    if (!empty($ftmp)) {
+    if ($_FILES["filecsv"]["error"] > 0) {
+    	$errmsg = "Upload error! Try again or contact the administrator.";
+	} else {
 	$oname = basename($_FILES['filecsv']['name']);
 	if (file_exists($ftmp)) {
 		$mappingsID2NUM = getSourceSentenceIdMapping($taskid);
@@ -132,6 +136,7 @@ if (isset($taskid)) {
 	} else {
 		$errmsg = "ERROR! Uploaded file hasn't been parsed correctly.";
 	}
+	}
 	} 
 	#print "Uploading... taskid: $taskid, type: $type<br>\n"; #.$_FILES['filecsv']['tmp_name'].
   }
@@ -140,7 +145,7 @@ if (isset($taskid)) {
 }
 
 //show stored data
-	$tasks = getTasks($mysession["username"]);
+	$tasks = getTasks($mysession["userid"]);
     
 	print "<table border=1 cellspacing=0 cellpadding=2><tr bgcolor=#ccc><th>Task name</th>";
 	foreach ($sentenceTypes as $stype) { 

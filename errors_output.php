@@ -40,7 +40,10 @@ function showRange(el,sentid,range) {
 	for (var i in ids) {
     	var el = document.getElementById(sentid+"."+ids[i]);
     	if (el != null) {
-    		el.style.borderBottom = "solid #000 2px";
+    		if (el.style.backgroundColor == COLOR) {
+				el.style.borderTop = "2px solid "+COLOR;
+			}
+			el.style.backgroundColor = "#bbb";
     	}
     }
 }
@@ -52,8 +55,13 @@ function hideRange(el,sentid,range) {
 	for (var i in ids) {
     	var el = document.getElementById(sentid+"."+ids[i]);
     	if (el != null) {
-    		el.style.borderBottom = "none";
-    	}
+    		if (el.style.borderTop == "2px solid "+COLOR) {
+				el.style.backgroundColor = COLOR;
+				el.style.borderTop = "none";
+			} else {
+				el.style.backgroundColor = WHITE;
+			}
+		}
     }
 }
 
@@ -172,7 +180,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		//print "<div style='display: table-cell; float: left; width: 666px'>";
 		
 		//Add output row
-		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $sentence_id);
+		$sent = showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $sentence_id, $errors, $ranges);
 		//ripristino eventuali errori nei carattri con lastring vuota se non sono stati fatte delle anotazioni
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
@@ -256,7 +264,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 					}
 					$annotations .="</div><br>";
 				}
-				print "<div style='background: #dedede;'> ";
+				print "<div style='background: #".$ranges[$errID][1].";'> ";
 				print "&nbsp;<i><small><b>".$ranges[$errID][0].":</b></small></i>";
 				if ($monitoring==0) {	
 						print "&nbsp;&nbsp;&nbsp;&nbsp;<button id=reset.$i.$errID name=reset onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
@@ -446,7 +454,6 @@ function selectTokens (sentid, down, up) {
     		} 
 	    }
 	}
-	
 	return changed;
 }
 
@@ -483,15 +490,15 @@ function saveAnnotationRanges(errid) {
 			break;
 		} else {
 			if (el.style.backgroundColor != WHITE) {
-				//alert(el.id +" "+ el.innerHTML + " " +el.style.backgroundColor);			
 				if (prevcolor == null || prevcolor != el.style.backgroundColor) {
+					//alert(el.id + " ## " +prevcolor + " ---- backgroundColor:" +el.style.backgroundColor);			
 					//ranges += "("+getType(prevcolor)+"),";
 					ranges += ","+elid;
 					//entities += " ("+getType(prevcolor)+")__BR__";
-					entities += "__BR__"+el.innerHTML;
+					entities += "__BR__"+el.innerHTML.replace(/<div style=.*$/,"");
 				} else {
 					ranges += " "+elid;
-					entities += " " +el.innerHTML;
+					entities += " " +el.innerHTML.replace(/<div style=.*$/,"");
 				}
 			}
 			prevcolor = el.style.backgroundColor;					
@@ -517,17 +524,15 @@ function saveAnnotationRanges(errid) {
     	elid++;	
 	}
 	
-	//alert(OUTPUTID+","+errid+", ranges: "+ranges);
-	ranges = ranges.replace(/^,\s*/,"");
-	
+	//alert("ID: <?php echo $id;?>, OUTPUTID: "+OUTPUTID+", ERRORID: "+ERRORID+", RANGES: "+ranges);
+	ranges = ranges.replace(/^,\s*/,"");	
 	entities = entities.replace(/^__BR__\s*/, "");
 	
-
  //if (send) { // && trim(ranges) != "") { 		
- 	$.ajax({
+ $.ajax({
   url: 'update.php',
   type: 'GET',
-  data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&words="+entities.replace(/&nbsp;/gi," ")+"&tokenids="+ranges,
+  data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&tokenids="+ranges+"&words="+encodeURIComponent(entities.replace(/&nbsp;/gi," ")),
   async: false,
   cache:false,
   crossDomain: true,

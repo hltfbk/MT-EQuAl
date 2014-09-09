@@ -115,6 +115,7 @@ if (isset($id)) {
 		$sentence="";
 		$user_annotations=array();
 		$sentence_records = getAgreementSentences($id);
+		$outputNum = 0;
 		$count=0;
 		$num=0;
 		$max=20;
@@ -127,47 +128,57 @@ if (isset($id)) {
 		}	
 		print " <button onclick=\"location.href='admin.php?section=stats&id=$id&from=".($from+$max)."'\">next</button>";
 		
+		$hashusers = getUserStats();
 		while ($row = mysql_fetch_array($sentence_records)) {
 			if ($userid != "" && ($userid != $row["user_id"] || $sentid != $row["output_id"] || $sourceid != $row["linkto"])) {
 				if (count($user_annotations) > 0) {
-					$auser = "<tr heigth=2>";
+					$auser = "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
 					for ($i=0; $i < count($tokens); $i++) {
 						if (isset($user_annotations["-1"])) {
-							$auser .= "<td bgcolor=".$user_annotations["-1"]."></td>";
+							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]."></td></table>";
 						} else if (isset($user_annotations[$i+1])) {
-							$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
+							#$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
+							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2>";
+							$cols = split(" ", trim($user_annotations[$i+1]));
+							foreach ($cols as $col) {
+								$auser .= "<td bgcolor=".$col."></td>";
+							}
+							$auser .= "</table></td>";
 						} else {
 							$auser .= "<td></td>";
 						}
 					}
-					$sentence = $auser ."</tr>\n".$sentence;
+					$auser .= "</tr>";
+					                       
+					$sentence .= "\n".$auser;
+
 				}
 				$user_annotations=array();
 			} 
 				
 			if ($sentid != "" && $sentid != $row["output_id"]) {
 				if ($num>=$from) {
-					print "<table cellspacing=0 cellpadding=2 border=1>".$sentence."</table><br>";
-					$sentence="";
-					$count++;
-					if ($count > $max) {
-						break;
-					}
+					print "OUTPUT $outputNum:<br><table cellspacing=0 cellpadding=0 border=1>".$sentence."</table><br>\n";
 				}
 				$sentence="";
 				
 			}
 			if ($sourceid != $row["linkto"]) {
+				$outputNum = 0;
+				$count++;
+				if ($count > $max) {
+					break;
+				}
 				$num++;
 				if ($num>=$from) {
 					print "<hr>";
 				}
-				$sentence = "<a href='".$taskinfo["type"].".php?id=".$row["linkto"]."&taskid=".$id ."'>".$row["linkto"]."</a><br>".$sentence;
-				
+				print "<a href='".$taskinfo["type"].".php?id=".$row["linkto"]."&taskid=".$id ."'><i>sentence n.$num</i></a><br>";
 				$sourceid = $row["linkto"];			
 			}
 			if ($sentid != $row["output_id"]) {
-				$tokens = getTokens($row["lang"], $row["text"]);
+				$outputNum++;
+				$tokens = getTokens($row["lang"], $row["text"], $row["tokenization"]);
 			}	
 			
 			if (trim($row["evalids"]) == "") {
@@ -176,13 +187,22 @@ if (isset($id)) {
 				$tokenids = split("[ |,]", trim($row["evalids"]));
 				if (count($tokenids) > 0) {
 					foreach ($tokenids as $tid) {
-						$user_annotations[$tid]=$ranges[$row["eval"]][1];
+						if (strpos($tid,'-') !== false) {
+							$tid = preg_replace('/-.*$/',"",$tid); 
+						}
+						
+						#print  $sentid  ."# " .$tid ." ". $ranges[$row["eval"]][0] ."<br>";	
+						if (!isset($user_annotations[$tid])) {
+							$user_annotations[$tid]=$ranges[$row["eval"]][1];
+						} else {					
+							$user_annotations[$tid].=" ".$ranges[$row["eval"]][1];
+						}
 					}
 				}
 			} 
 				
 			if ($sentid != $row["output_id"]) {
-				$sentence .= "<tr bgcolor=#fff><td>".join("</td><td>", $tokens)."</td></tr>\n";
+				$sentence .= "<tr bgcolor=#fff><td style='padding: 1px'>".join("</td><td style='padding: 2px'>", $tokens)."</td></tr>\n";
 				$sentid = $row["output_id"];
 				$userid = "";
 			}
@@ -190,21 +210,31 @@ if (isset($id)) {
 			
 		}
 		//end while
-		if ($sentence != "") {
-			$auser = "<tr heigth=2>";
-			for ($i=0; $i < count($tokens); $i++) {
-				if (isset($user_annotations["-1"])) {
-					$auser .= "<td bgcolor=".$user_annotations["-1"]."></td>";
-				} else if (isset($user_annotations[$i+1])) {
-					$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
-				} else {
-					$auser .= "<td></td>";
-				}
-			}
-			$sentence = $auser ."</tr>\n".$sentence;
+		
+		if (count($user_annotations) > 0) {
+					$auser = "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
+					for ($i=0; $i < count($tokens); $i++) {
+						if (isset($user_annotations["-1"])) {
+							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]."></td></table>";
+						} else if (isset($user_annotations[$i+1])) {
+							#$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
+							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2>";
+							$cols = split(" ", trim($user_annotations[$i+1]));
+							foreach ($cols as $col) {
+								$auser .= "<td bgcolor=".$col."></td>";
+							}
+							$auser .= "</table></td>";
+						} else {
+							$auser .= "<td></td>";
+						}
+					}
+					$auser .= "</tr>";
+					                       
+					$sentence .= "\n".$auser;
+
 				
 			if ($num>=$from) {
-				print "<table cellspacing=0 cellpadding=2 border=1>".$sentence."</table><br>";
+				print "OUTPUT $outputNum:<br><table cellspacing=0 cellpadding=0 border=1>".$sentence."</table><br>\n";
 			}
 		}		
 }
