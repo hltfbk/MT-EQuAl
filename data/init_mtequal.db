@@ -126,7 +126,7 @@ DROP TABLE IF EXISTS `task`;
 CREATE TABLE `task` (
   `id` int(4) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
-  `type` enum('quality','errors','wordaligner') DEFAULT NULL,
+  `type` enum('quality','errors','wordaligner','docann') DEFAULT NULL,
   `descr` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `instructions` text NOT NULL,
   `ranges` text NOT NULL,
@@ -156,6 +156,7 @@ CREATE TABLE `user` (
   `activated` enum('Y','N') DEFAULT 'Y',
   `registered` date NOT NULL,
   `notes` text NOT NULL,
+  `refuser` int(10) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=48 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
