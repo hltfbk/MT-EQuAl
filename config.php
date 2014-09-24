@@ -55,7 +55,7 @@ if (DEBUG == "yes") {
 
 
 # db connection	
-$db = @mysql_pconnect(DB_HOST,DB_USER,DB_PASSWORD) or die("<center><br><h3>Fatal Error: unable to connect to the MTEval database server (attempted on ". DB_HOST . ").<br>Please contact ".SYSADMIN.".</h3></center>");  
+$db = @mysql_pconnect(DB_HOST,DB_USER,DB_PASSWORD) or die("<center><br><h3>Fatal Error: unable to connect to the MT-EQuAl database server (attempted on ". DB_HOST . ").<br>Please contact ".SYSADMIN.".</h3></center>");  
     
 if (!mysql_ping ($db)) {
 	//here is the major trick, you have to close the connection (even though its not currently working) for it to recreate properly.
@@ -64,7 +64,7 @@ if (!mysql_ping ($db)) {
 }
 if ( !@mysql_select_db(DB_NAME,$db) ) {
 	#echo "<p>Unable to find the ".DB_NAME." database on ".DB_HOST.". Please contact ".SYSADMIN.".<p>";
-	echo "<p>Unable to find the MTEval database. Please contact ".SYSADMIN.".<p>";
+	echo "<p>Unable to find the MT-EQuAl database. Please contact ".SYSADMIN.".<p>";
     #echo mysql_errno($db) . ": " . mysql_error($db). "\n";
 	exit();
 }  

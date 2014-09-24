@@ -242,12 +242,11 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			$checkid++;
 			} 
 		}
-		
-			
+				
 		while (list ($errID, $errARRAY) = each($errors)) {
-			  if ($errID > 1) {
-			  	$tokenids = split(",",$errARRAY[0]);
-				$texts = split("__BR__",$errARRAY[1]);
+			if ($errID > 1) {
+			  	$tokenids = explode(",",$errARRAY[0]);
+				$texts = explode("__BR__",$errARRAY[1]);
 				$annotations = "";
 				for($r=0; $r<count($tokenids); $r++) {
 					$delicon = "";
@@ -264,25 +263,20 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 					}
 					$annotations .="</div><br>";
 				}
-				print "<div style='background: #".$ranges[$errID][1].";'> ";
-				print "&nbsp;<i><small><b>".$ranges[$errID][0].":</b></small></i>";
+				print "<div style='background: #".$ranges[$errID][1]."; white-space: nowrap;'> ";
 				if ($monitoring==0) {	
-						print "&nbsp;&nbsp;&nbsp;&nbsp;<button id=reset.$i.$errID name=reset onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
+					print "<button id=reset.$i.$errID onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
 				}
-				print "</div>$annotations";
-				}
-			  }
-			  
+				print "&nbsp;<i><small><b>".$ranges[$errID][0].":</b></small></i></div>$annotations";
+			}
+		}	  
 					
-		print "</div>";	
-		print "</td>";
+		print "</div></td>";
 		//end error cell
 		
 		print "</table><div style='display: inline-block; border-top: dashed #666 1px; width: 100%'>&nbsp;</div>";
-		$i++;
-	
+		$i++;	
 	}
-	#print "</div>";
 	
 	#print count($hash_target) ."!= $checked || ".isDone($id,$userid);
 	if (isDone($id,$userid) > 0) {

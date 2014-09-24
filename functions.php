@@ -18,9 +18,13 @@ limitations under the License.
 */
 
 # get user annotation statistics
-function getUserStats() {
+function getUserStats($user_id, $user_status) {
 	$hash = array();
-	$query = "select id,username,name,tasks,count(*),activated from user left join annotation on annotation.user_id=user.id group by id order by id;";
+	if ($user_status == "admin") {
+		$query = "select id,username,name,tasks,count(*),activated from user left join annotation on annotation.user_id=user.id group by id order by id;";
+	} else if ($user_status == "advisor") {
+		$query = "select id,username,name,tasks,count(*),activated from user left join annotation on annotation.user_id=user.id WHERE refuser=$user_id group by id order by id;";
+	} 
 	$result = safe_query($query);	
 	if (mysql_num_rows($result) > 0) {
 		while($row = mysql_fetch_row($result)) {
@@ -43,16 +47,6 @@ function getUserInfo($userid) {
 	return array();
 }
 
-function getTaskInfo($taskid) {
-	$query ="SELECT * FROM task WHERE id='$taskid'";
-	$result = safe_query($query);
-	if (mysql_num_rows($result) == 1) {
-		return mysql_fetch_array($result);
-	}
-	return array();
-}
-
-
 #remove user info, and all down annotations 
 function removeUser($userid) {
 	$query ="DELETE FROM annotation WHERE user_id=$userid";
@@ -72,6 +66,15 @@ function removeUser($userid) {
 		}	
 	}
 	return 0;
+}
+
+function getTaskInfo($taskid) {
+	$query ="SELECT * FROM task WHERE id='$taskid'";
+	$result = safe_query($query);
+	if (mysql_num_rows($result) == 1) {
+		return mysql_fetch_array($result);
+	}
+	return array();
 }
 	
 #remove task info, sentences belongs to it and all user annotations 
@@ -185,6 +188,13 @@ function getUserLastAnnotations($user_id, $limit = 2) {
 		}
 	}
 	return $hash;
+}
+
+function getUserLastDone($user_id) {
+	$query = "SELECT count(lasttime), max(lasttime) from done where user_id=$user_id order by lasttime desc";
+	
+	$result = safe_query($query);	
+	return mysql_fetch_row($result);
 }
 
 # get sentence mapping between the source ID and the internal MySQL one
@@ -339,8 +349,8 @@ function removeError($id,$targetid,$user_id,$eval,$item) {
 	if (mysql_num_rows($result) > 0) {
 		$row = mysql_fetch_row($result);
 		
-		$ids = split(",",$row[0]);
-		$texts = split("__BR__",$row[1]);
+		$ids = explode(",",$row[0]);
+		$texts = explode("__BR__",$row[1]);
 		for ($i=0; $i<count($ids); $i++) {
 			if ($ids[$i] == $item || empty($ids[$i])) {
 				unset($ids[$i]);
@@ -944,7 +954,7 @@ function exportCSV ($userid) {
 					}
 						
 					$text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_annotation[7]));
-					$trg_tokens = getTokens(ereg_replace(".*_","", $row_annotation[6]), $text,$row_annotation[8]);
+					$trg_tokens = getTokens(preg_replace("/.*_/","", $row_annotation[6]), $text,$row_annotation[8]);
 					if (isset($hash_common_taskanns[$row_annotation[5]])) { 
 						$src_tokens = getTokens($row_source[0],$src_text,$row_source[2]);
 						if (preg_match("/quality/i", $tasktype)) {
@@ -977,14 +987,14 @@ function exportCSV ($userid) {
 							} else if ($row_annotation[3] == 7) {
 								$label = "Superfluous";
 							} 
-							$splitted_ids = split(",",preg_replace("/^,/","",$row_annotation[4]));
+							$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
 							$cleaned_ids = array();
 							#$savelog=0;
 							#if ($row_annotation[1] == "MI009_GSPPA-I_13_REP_en-11" && $taskid=4 && $row_annotation[2] == sys1 && $label == "Lexicon") { 
 							#	$savelog =1;
 							#}
 							foreach ($splitted_ids as $item_ids) {
-								$ids = split(" ", trim($item_ids));
+								$ids = explode(" ", trim($item_ids));
 								#if ($savelog == 1) {
 								#	saveLog("=>>>>> "  . trim($item_ids));
 								#}
@@ -1195,7 +1205,7 @@ function exportXML ($userid) {
 									fwrite($fh,"    <comment>".preg_replace("/.+\t/","",$comments{$row_annotation[0]}) ."</comment>\n");
 								}									
 							}
-							$tokens = getTokens(ereg_replace(".*_","",$row_annotation[6]), $text, $row_annotation[8]);
+							$tokens = getTokens(preg_replace("/.*_/","",$row_annotation[6]), $text, $row_annotation[8]);
 							fwrite($fh,"    <target tok_num='".count($tokens)."'>\n      <text>".xml_escape($text)."</text>\n");	
 							
 							#add tokens
@@ -1227,11 +1237,11 @@ function exportXML ($userid) {
 								$label = "Superfluous";
 							} 
 														
-							$splitted_ids = split(",",preg_replace("/^,/","",$row_annotation[4]));
+							$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
 							$cleaned_ids = array();
 							
 							foreach ($splitted_ids as $item_ids) {
-								$ids = split(" ", trim($item_ids));
+								$ids = explode(" ", trim($item_ids));
 								#if ($savelog == 1) {
 								#	saveLog("=>>>>> "  . trim($item_ids));
 								#}
@@ -1268,7 +1278,7 @@ function exportXML ($userid) {
 							fwrite($fh,"      <annotation type='error' typeid='".$row_annotation[3]."' label='".$label."'>\n");
 							foreach ($cleaned_ids as $ids) {
 								fwrite($fh,"        <span>\n");
-								foreach (split(" ", $ids) as $id) {
+								foreach (explode(" ", $ids) as $id) {
 									fwrite($fh,"          <token id='$id'");
 									if (preg_match('/-/',$id)) {
 										fwrite($fh,"/>\n");
@@ -1289,10 +1299,10 @@ function exportXML ($userid) {
 							}
 							
 							fwrite($fh,"      <annotation type='wordalign' typeid='".$row_annotation[3]."' label='$label'>\n");
-							$splitted_ids = split(" ",$row_annotation[4]);
+							$splitted_ids = explode(" ",$row_annotation[4]);
 								
 							foreach ($splitted_ids as $id) {
-								$xy = split("-", $id);
+								$xy = explode("-", $id);
 								if (isset($sourcetokens[$xy[0]]) && isset($tokens[$xy[1]])) {
 									fwrite($fh,"        <span>\n");
 									fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]])."</token>\n"); 	
@@ -1367,7 +1377,7 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 	$tokenbg = " class=token onmouseover=\"this.className='orangeborderb'\" onmouseout=\"this.className='whiteborderb'\"";
 	$hashTokenidErrortype = array();
 	while (list ($errID, $errARRAY) = each($hashErrors)) {
-		$tokids = split("[ |,]", $errARRAY[0]);
+		$tokids = preg_split("[ |,]", $errARRAY[0]);
 		//check the max number of lenght of the current segment of tokens
 		$maxUnderlines = 0;
 		foreach ($tokids as $tid) {
@@ -1451,7 +1461,7 @@ function getTokens  ($lang, $text, $tokenization = 2) {
 				#other special character
 				#ord($ch)=194 (No-break space) U+00A0 &#160; 
 				if (($tokenization==1 && ($ch == " " || ord($ch) == 194)) || 
-					($tokenization==2 && ($ch == " " || ord($ch) == 194 || eregi("[!|\?|\"|'|-|/|$|,|:|;|\.|\(|\)|\[|\]|{|}]",$ch)))) {
+					($tokenization==2 && ($ch == " " || ord($ch) == 194 || preg_match("/[\!|\?|\"|\'|\-|\/|\$|,|:|;|\.|\(|\)|\[|\]|\{|\}]/",$ch)))) {
 					if (strlen($token) > 0) {
 						array_push($tokens, $token);
 						$token="";
@@ -1598,7 +1608,7 @@ function safe_query_OLD ($query = "") {
     $errorno=0;
 
     $result = mysql_query($query) or $errorno= mysql_errno();
-    if (eregi("^INSERT", $query)) {
+    if (preg_match("/^INSERT/", $query)) {
         $LAST_INSERT_ID = mysql_insert_id();
     }
     #saveLog($query);

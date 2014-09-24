@@ -52,9 +52,11 @@ div.uploadform {
 <?php
 //add new sentence
 $errmsg="";
-if (!empty($mysession["status"]) && $mysession["status"] == "admin") {
+$tasks = getTasks($mysession["userid"]);
+    
+if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 $log = "";	
-if (isset($taskid)) {
+if (isset($taskid) && isset($tasks[$taskid])) {
  if (isset($type)) {
   if (isset($action) && $action="remove") {
   	if (isAnnotatedTask($taskid) == 0) {
@@ -83,7 +85,7 @@ if (isset($taskid)) {
     			$linenum++;
     			$query = "";
         		#print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
-    			$items = split("\t", htmlentities2utf8($line));
+    			$items = explode("\t", htmlentities2utf8($line));
     			if (count($items) < 3 || empty($items[1])) {
     				$errmsg = "WARNING! Parse error on file $oname: the language is missed.<br>\n[line: $linenum] $line\n";
     				break;
@@ -145,8 +147,7 @@ if (isset($taskid)) {
 }
 
 //show stored data
-	$tasks = getTasks($mysession["userid"]);
-    
+	
 	print "<table border=1 cellspacing=0 cellpadding=2><tr bgcolor=#ccc><th>Task name</th>";
 	foreach ($sentenceTypes as $stype) { 
 		print "<th>$stype</th>";			
@@ -157,13 +158,11 @@ if (isset($taskid)) {
 		$count_hash = countTaskSentences($tid);
 		foreach ($sentenceTypes as $stype) { 
 			print "<td>";
-			if (isset($count_hash[$stype])) {
-				print $count_hash[$stype];
-				if ($mysession["status"] == "admin") { 
-					print " <a href=\"javascript:delSentences($tid,'$stype');\"><img border=0 width=11 src='img/delete.png'></a> <a href=\"javascript:showUpload($tid,'$stype');\"><img src='img/add.png'></a>";
+			if ($tarr[1] != "docann" || $stype == "source") {
+				if (isset($count_hash[$stype])) {
+					print $count_hash[$stype] ." <a href=\"javascript:delSentences($tid,'$stype');\"><img border=0 width=11 src='img/delete.png'></a>";	
 				}
-			} else {
-				print "<a href=\"javascript:showUpload($tid,'$stype');\"><img src='img/add.png'></a>";
+				print " <a href=\"javascript:showUpload($tid,'$stype');\"><img src='img/add.png'></a>";
 			}
 			print "</td>";
 		}

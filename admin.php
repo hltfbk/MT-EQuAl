@@ -271,17 +271,17 @@ $(".ziplink").click(function (e) {
 <?php
 include("menu.php");
 
-if (isset($mysession) && !empty($mysession["status"])) {
-	if ($mysession["status"] == "admin") {
-		$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
-		$current_pane="task";
-	} else if ($mysession["status"] == "advisor") {
-		$panels = array("ANNOTATION");
-		$current_pane="annotation";
-	} 
-	if (isset($section)) {
-		$current_pane=$section;
-	}
+$current_pane="task";
+if (isset($section)) {
+	$current_pane=$section;
+}
+$panels = array();
+if (file_exists("admin_".$current_pane.".php")) {
+	if (isset($mysession) && !empty($mysession["status"])) {
+		if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
+			$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
+		} 
+	
 ?>
 
 <div class=index><div class=row><div style='margin: 10px; display: inline-block'>
@@ -289,18 +289,23 @@ if (isset($mysession) && !empty($mysession["status"])) {
 <?php
 	foreach ($panels as $pane) {
 		if (strtolower(preg_replace("/ .*/","",$pane)) == $current_pane) {
-	 		print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
+			print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
 		} else {
-		 	print"<li><a href=\"admin.php?section=".strtolower(preg_replace("/ .*/","",$pane))."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
+	 		print"<li><a href=\"admin.php?section=".strtolower(preg_replace("/ .*/","",$pane))."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
 		}
-	}
+	}	
 ?>
 </ul>
 
 <?php
-	print "<div id='content'>\n";
-	include("admin_".$current_pane.".php");
-	print "</div>";
+	if (count($panels) > 0) {	
+		print "<div id='content'>\n";
+		include("admin_".$current_pane.".php"); 
+		print "</div>";
+	} else {
+		print "WARNING! You don't have any administrator permission.";
+	}
+ }
 }
 ?>
 </body>

@@ -42,7 +42,9 @@ li.selected {
 <div style='float: left; vertical-align: top; top: 0px; display: inline-block; padding-right: 0px; margin: 0px'>
 
 <?php
-if ($mysession["status"] == "admin") { 
+if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") { 
+	$userlist = getUserStats($mysession["userid"],$mysession["status"]);
+	
 	$sentlabel="Create";
 	$cancelbutton="";
 	$visibility_tform="visible";
@@ -141,7 +143,7 @@ if ($mysession["status"] == "admin") {
   <tr><th bgcolor=#ddd align=right>Full name:</th><td><input TYPE=text name="name" size=30 value="<?php echo $userinfo['name']; ?>"></td></tr>
   <tr><th bgcolor=#ddd align=right>User name:</th><td><input TYPE=text name="username" size=15 value="<?php echo $userinfo['username']; ?>"></td></tr>
   <tr><th bgcolor=#ddd align=right>E-mail:</th><td><input TYPE=text name="email" size=30 value="<?php echo $userinfo['email']; ?>"></td></tr>
-  <tr><th bgcolor=#ddd align=right>Password:</th><td><input TYPE=text name="password" size=15 value="<?php echo $userinfo['password']; ?>"></td></tr>
+  <tr><th bgcolor=#ddd align=right>Password:</th><td><input TYPE=password name="password" size=15 value="<?php echo $userinfo['password']; ?>"></td></tr>
   <tr><th bgcolor=#ddd align=right>User type: </th><td><select name="status">
   <?php
 	foreach ($userTypes as $utype) {
@@ -155,9 +157,10 @@ if ($mysession["status"] == "admin") {
   </select></td></tr>
  <tr><th bgcolor=#ddd align=right>Team:</th><td><input TYPE=text name="team" value="<?php echo $userinfo['team']; ?>"></td></tr>
  <tr><th bgcolor=#ddd align=right valign=top>Notes:</th><td> <textarea rows="4" cols="50" name="notes" value="<?php echo $userinfo['notes']; ?>"><?php if (isset($notes)) { echo $notes;} ?></textarea></td></tr>
- <tr><td>
-  <tr><th bgcolor=#ddd align=right valign=top>Tasks:</th><td><i><font size=-1>(hold CTRL for multiple selection)</font></i><br><select multiple="multiple" name="utasks[]" size=8 style='font-size: 13px'>
-  <?php	
+ <tr><th bgcolor=#ddd align=right valign=top>Tasks:</th><td><i><font size=-1>(hold CTRL for multiple selection)</font></i><br>
+  <select multiple="multiple" name="utasks[]" size=8 style='font-size: 13px'>
+
+<?php	
 	$allTasks = getTasks($id);
 	print "<option value='all'";
 	if ($userinfo['tasks'] == "all") {
@@ -174,7 +177,7 @@ if ($mysession["status"] == "admin") {
 		print "> ".$tarr[0];
 	}	
 ?>
-  </select></td></tr>
+</select></td></tr>
 <tr><th bgcolor=#ddd align=right>Active:</th><td> <input type="checkbox" name="activated"
 <?php
 	if ($userinfo['activated'] == "Y") {
@@ -187,9 +190,10 @@ if ($mysession["status"] == "admin") {
   </table>
 </form>
 
-<div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">ALL USERs<hr>
+<div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">
 <?php	
-	$userlist = getUserStats();
+if (count($userlist) > 0) {
+	print "ALL USERs<hr>";
 	while (list ($uid,$uarr) = each($userlist)) {
 		$tasknum = $uarr[2];
 		if ($tasknum != "all") {
@@ -202,20 +206,24 @@ if ($mysession["status"] == "admin") {
 		}
 		print "<a href=\"javascript:delUser($uid);\"><img border=0 width=12 src='img/remove.png'></a> ";
 		if ($uarr[4] == "N") {
-			print "<s><font color=#666 title='this user is not active'>";
+			print "<s><font color=#666 title='this user is not active'>".$uarr[0]."</font></s>";
+		} else {
+			print $uarr[0];
 		}
-		print $uarr[0];
-		if ($uarr[4] == "N") {
-			print "</font></s>";
+		print " - <a href='admin.php?section=user&id=$uid' title='tasks: $tasknum";
+		if ($tasknum > 0 || $tasknum == "all") {
+			$doneInfo = getUserLastDone($uid);
+			print "\ndone: ".$doneInfo[0];
+			if ($doneInfo[0] > 0) {
+		 		print "\nlast: ".$doneInfo[1];
+			}
 		}
-		print " - <a href='admin.php?section=user&id=$uid'>". $uarr[1]."</a> (tasks: $tasknum)";
+		print "'>". $uarr[1]."</a><br>";
+		
 	}	
-
-?>
-</div>
-</div>
-<?php
+}
+	print "</div></div>";
 } else {
-	print "WARNING! You don't have enoght permission to modify user accounts.";
+	print "WARNING! You don't have enough permission to modify user accounts.";
 }
 ?>

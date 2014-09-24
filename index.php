@@ -1,13 +1,14 @@
-<body>
+<?php
+@header("Content-type: text/html; charset=utf-8");
+include("config.php");
+include("functions.php");
+?>
 <head>
     <title>MT-EQuAl: a Toolkit for Human Assessment of Machine Translation Output</title>
     <link href="css/mtequal.css" rel="styleSheet" type="text/css">
 </head>
-<?php
-header("Content-type: text/html; charset=utf-8");
-include("config.php");
-include("functions.php");
 
+<?php
 #debug
 if (DEBUG == "yes") {
 	print"<div style='float: right; right: 20px; display: inline; position: absolute'>";

@@ -2,8 +2,12 @@
 <input type=hidden name=section value="stats" />
 Choose a task: <select onChange="submit()" name='id'><option value=''>
 <?php
-if (isset($mysession) && $mysession["status"] == "admin") { 
-	$tasks = getTasks(null);
+if (isset($mysession)) { 
+	if ($mysession["status"] == "admin") {
+		$tasks = getTasks(null);
+	} else if ($mysession["status"] == "advisor") {
+		$tasks = getTasks($mysession["userid"]);
+	}
 	$ttype = "";
 	while (list ($tid,$tarr) = each($tasks)) {
 		if ($tarr[1] != $ttype) {
@@ -27,13 +31,17 @@ $annid="";
 $annotators=array();
 $statsTable = "";
 if (isset($id)) {
+	$taskinfo = getTaskInfo($id);
+	
+	if (count($taskinfo) > 0) {
+	
 	$hash_report = getAnnotationReport($id);
 	$systems = array();
 	$statsTable = "<div style='margin:5px; display: inline-block; padding: 4px; border: 1px solid #000'><table cellspacing=1	 cellpadding=0 border=0><tr bgcolor=#ccc><td align=center>Annotation type</td><td colspan=4 align=center>Systems</td></tr><tr><td></td><td bgcolor='#000'><img width=1></td>";
 	while (list ($eval,$counters) = each($hash_report)) {
-		$values = split(",", $counters);
+		$values = explode(",", $counters);
 		foreach ($values as $val) {
-			$items = split(" ", $val);
+			$items = explode(" ", $val);
 			if (!in_array($items[1],$annotators)) {
 				array_push($annotators, $items[1]);
 			}
@@ -54,7 +62,7 @@ if (isset($id)) {
 	$statsTable .= "<tr><td></td><td colspan=".(count($systems)+1)." height=1 bgcolor='#000'><img width=1></td></tr>";
 					
 	reset($hash_report);
-	$taskinfo = getTaskInfo($id);
+	
 	$ranges = rangesJson2Array($taskinfo["ranges"]);
 	while (list ($evalid, $attrs) = each($ranges)) {
 		$statsTable .= "<tr align=right><th bgcolor='".$attrs[1]."'>".$attrs[0]."&nbsp;&nbsp;</th><td bgcolor='#000'><img width=1></td>\n";
@@ -63,10 +71,10 @@ if (isset($id)) {
 			$statsTable .= "<td>";
 			if (isset($anntot[$evalid."-".$system])) {
 				$counters = $hash_report[$evalid];
-				$values = split(",", $counters);
+				$values = explode(",", $counters);
 				$annotationdetail = "";
 				foreach ($values as $val) {
-					$items = split(" ", $val);
+					$items = explode(" ", $val);
 					if ($items[0] == "$system") {
 						$annotationdetail .= "user ".$items[1].": ".$items[2]."\n";
 					}
@@ -84,31 +92,11 @@ if (isset($id)) {
 	while (list ($system,$tot) = each($systems)) {
 		$statsTable .= "<th>$tot</th>";
 	}
+	
 	$statsTable .= "</tr></table>";	
-	print "<strong>&nbsp;&nbsp;This task has been annotated by <b>".count($annotators) ."</b> users</strong></br>".$statsTable;
+	print "<strong>&nbsp;&nbsp;This task has been annotated by <b>".count($annotators) ."</b> users</strong></br>";
 	
-	/*while (list ($eval,$counters) = each($hash_report)) {
-		$system ="";
-		$values = split(",", $counters);
-		print "<div style='margin:5px; display: inline-block; padding: 4px; border: 1px solid #000'><table cellspacing=0 cellpadding=0 border=0>";
-		print "<tr><td colspan=3 align=center>$eval</td></tr>";
-		foreach ($values as $val) {
-			$items = split(" ", $val);
-			if ($items[0] != $system) {
-				if ($system != "") {
-					print "<tr><td></td><td colspan=4 height=1 bgcolor='#000'><img width=1></td></tr>";
-					print "<tr><th>&nbsp;".$system."&nbsp;</th><th bgcolor='#000'><img width=1></th><th align=right>&nbsp;".$anntot[$eval."-".$system]. "&nbsp;</th><th bgcolor='#000'><img width=1></th><th align=right><small>TOTALE</small></th></tr>";
-				}
-				print "<tr><td colspan=5 height=1 bgcolor='#000'><img width=1></td></tr>";
-				$system = $items[0];
-			} 
-			print "<tr><td></td><td bgcolor='#000'><img width=1></td><td align=right>".$items[2]."&nbsp;</td><td bgcolor='#000'><img width=1></td><td width=52% align=right nowrap>&nbsp; <small>user ".$items[1]."</small></td></tr>";	
-		}
-		print "<tr><td></td><td colspan=4 height=1 bgcolor='#000'><img width=1></td></tr>";
-		print "<tr><th>&nbsp;".$items[0]."&nbsp;</th><th bgcolor='#000'><img width=1></th><th align=right>&nbsp;".$anntot[$eval."-".$items[0]]. "&nbsp;</th><th bgcolor='#000'><img width=1></th><th align=right><small>TOTALE</small></th></tr>";
-		print "</table></div>";
-	}*/
-	
+	if (count($annotators) > 0) {	
 		$sentid = "";
 		$sourceid="";
 		$userid="";
@@ -122,24 +110,37 @@ if (isset($id)) {
 		if (!isset($from)) {
 			$from=0;
 		}
-		print "<br><strong>Show sentence annotations: </strong>";
-		if ($from > 0) {
-			print "<button onclick=\"location.href='admin.php?section=stats&id=$id&from=".($from-$max)."'\">prev</button> |";
-		}	
-		print " <button onclick=\"location.href='admin.php?section=stats&id=$id&from=".($from+$max)."'\">next</button>";
 		
-		$hashusers = getUserStats();
+		$outputText = "";
+		$hashusers = getUserStats(null,"admin");
 		while ($row = mysql_fetch_array($sentence_records)) {
 			if ($userid != "" && ($userid != $row["user_id"] || $sentid != $row["output_id"] || $sourceid != $row["linkto"])) {
-				if (count($user_annotations) > 0) {
-					$auser = "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
+				if (count($user_annotations) > 0 && isset($hashusers{$userid})) {
+					$auser = "";
+					#Hjerson
+					if ($userid == 47) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; H j e r s o n</td></tr>";
+                    # da 1 a 20 (#48 to #139)
+                    } else if ($userid == 48) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 1 &nbsp; t o &nbsp; 20 &nbsp; (a n n o t a t i o n &nbsp; f r o m &nbsp; s c r a t c h)</td></tr>";
+                    
+                    # da 21 a 40 (#140 to 159)
+                    } else if ($userid == 140) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 21 &nbsp; t o &nbsp; 40 &nbsp; (H j e r s o n &nbsp; r e v i s i o n)</td></tr>";
+                    
+                    # da 41 a 60 (#160 to 179)
+                    } else if ($userid == 160) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 41 &nbsp; t o &nbsp; 60 &nbsp; (h u m a n &nbsp; a n n o t a t i o n &nbsp; r e v i s i o n)</td></tr>";
+                    } 
+                    
+                    $auser .= "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
 					for ($i=0; $i < count($tokens); $i++) {
 						if (isset($user_annotations["-1"])) {
 							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]."></td></table>";
 						} else if (isset($user_annotations[$i+1])) {
 							#$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
 							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2>";
-							$cols = split(" ", trim($user_annotations[$i+1]));
+							$cols = explode(" ", trim($user_annotations[$i+1]));
 							foreach ($cols as $col) {
 								$auser .= "<td bgcolor=".$col."></td>";
 							}
@@ -149,20 +150,18 @@ if (isset($id)) {
 						}
 					}
 					$auser .= "</tr>";
-					                       
 					$sentence .= "\n".$auser;
-
 				}
 				$user_annotations=array();
 			} 
 				
 			if ($sentid != "" && $sentid != $row["output_id"]) {
 				if ($num>=$from) {
-					print "OUTPUT $outputNum:<br><table cellspacing=0 cellpadding=0 border=1>".$sentence."</table><br>\n";
+					$outputText .= "OUTPUT $outputNum:<br><table cellspacing=0 cellpadding=0 border=1>".$sentence."</table><br>\n";
 				}
-				$sentence="";
-				
+				$sentence="";				
 			}
+			
 			if ($sourceid != $row["linkto"]) {
 				$outputNum = 0;
 				$count++;
@@ -171,9 +170,8 @@ if (isset($id)) {
 				}
 				$num++;
 				if ($num>=$from) {
-					print "<hr>";
+					$outputText .= "<hr><a href='".$taskinfo["type"].".php?id=".$row["linkto"]."&taskid=".$id ."'><i>sentence n.$num</i></a><br>";					
 				}
-				print "<a href='".$taskinfo["type"].".php?id=".$row["linkto"]."&taskid=".$id ."'><i>sentence n.$num</i></a><br>";
 				$sourceid = $row["linkto"];			
 			}
 			if ($sentid != $row["output_id"]) {
@@ -184,14 +182,14 @@ if (isset($id)) {
 			if (trim($row["evalids"]) == "") {
 				$user_annotations["-1"]=$ranges[$row["eval"]][1];
 			} else {
-				$tokenids = split("[ |,]", trim($row["evalids"]));
+				$tokenids = preg_split("[ |,]", trim($row["evalids"]));
 				if (count($tokenids) > 0) {
 					foreach ($tokenids as $tid) {
 						if (strpos($tid,'-') !== false) {
 							$tid = preg_replace('/-.*$/',"",$tid); 
 						}
 						
-						#print  $sentid  ."# " .$tid ." ". $ranges[$row["eval"]][0] ."<br>";	
+						#print  $sentid  ."# " .$tid ." ## ". $ranges[$row["eval"]][0] ."<br>";	
 						if (!isset($user_annotations[$tid])) {
 							$user_annotations[$tid]=$ranges[$row["eval"]][1];
 						} else {					
@@ -211,15 +209,32 @@ if (isset($id)) {
 		}
 		//end while
 		
-		if (count($user_annotations) > 0) {
-					$auser = "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
+		if (count($user_annotations) > 0 && isset($hashusers{$userid})) {
+					$auser = "";
+					#Hjerson
+					if ($userid == 47) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; H j e r s o n</td></tr>";
+                    # da 1 a 20 (#48 to #139)
+                    } else if ($userid == 48) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 1 &nbsp; t o &nbsp; 20 &nbsp; (a n n o t a t i o n &nbsp; f r o m &nbsp; s c r a t c h)</td></tr>";
+                    
+                    # da 21 a 40 (#140 to 159)
+                    } else if ($userid == 140) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 21 &nbsp; t o &nbsp; 40 &nbsp; (H j e r s o n &nbsp; r e v i s i o n)</td></tr>";
+                    
+                    # da 41 a 60 (#160 to 179)
+                    } else if ($userid == 160) {
+                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 41 &nbsp; t o &nbsp; 60 &nbsp; (h u m a n &nbsp; a n n o t a t i o n &nbsp; r e v i s i o n)</td></tr>";
+                    } 
+                    
+                    $auser .= "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
 					for ($i=0; $i < count($tokens); $i++) {
 						if (isset($user_annotations["-1"])) {
 							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]."></td></table>";
 						} else if (isset($user_annotations[$i+1])) {
 							#$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
 							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2>";
-							$cols = split(" ", trim($user_annotations[$i+1]));
+							$cols = explode(" ", trim($user_annotations[$i+1]));
 							foreach ($cols as $col) {
 								$auser .= "<td bgcolor=".$col."></td>";
 							}
@@ -232,10 +247,25 @@ if (isset($id)) {
 					                       
 					$sentence .= "\n".$auser;
 
-				
 			if ($num>=$from) {
-				print "OUTPUT $outputNum:<br><table cellspacing=0 cellpadding=0 border=1>".$sentence."</table><br>\n";
+				$outputText .= "OUTPUT $outputNum:<br><table cellspacing=0 cellpadding=0 border=1>".$sentence."</table><br>\n";
 			}
-		}		
+		}	
+		
+		
+		if ($outputText != "") {
+			print "$statsTable<br><strong>Annotated sentences: </strong>";
+			if ($from > 0) {
+				print "<button onclick=\"location.href='admin.php?section=stats&id=$id&from=".($from-$max)."'\">prev</button> |";
+			}	
+			if ($count > $max+1) {
+				print " <button onclick=\"location.href='admin.php?section=stats&id=$id&from=".($from+$max+1)."'\">next</button>";
+			}
+			print $outputText;
+		} 
+	  }
+	} else {
+		print "WARNING! This task is not valid.";
+	}	
 }
 ?>

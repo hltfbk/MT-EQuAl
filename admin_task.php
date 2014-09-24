@@ -237,7 +237,7 @@ function send(form) {
 }*/
 $sentypes = getSentenceType();
  	
-if ($mysession["status"] == "admin") { 
+if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") { 
 	$sentlabel="Create";
 	$cancelbutton="";
 	$visibility_tform="visible";
@@ -311,9 +311,15 @@ if ($mysession["status"] == "admin") {
 		}		
 	} else {
 		$id = "-1";
+	}
+	
+	$tasks = getTasks($mysession["userid"]);
+	if ($id<0 || !isset($tasks{$id})) {
+		$id = -1;
 		print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
 		$visibility_tform="hidden";
 	}
+	
 ?>
 </div>
 
@@ -360,7 +366,7 @@ if ($taskinfo['randout'] == "Y") {
 
 <?php
 $alreadyUsedValues = getUsedValues($id);	
-if (count($alreadyUsedValues) == 0) {
+if (count($alreadyUsedValues) == 0 && $taskinfo['type'] != "docann") {
 ?>
 <INPUT type="button" value="Use default setting" onclick="defaultRanges('<?php echo $taskinfo['type']; ?>')" /><a href="#"><img src="img/question.png" width=18 onclick="alertify.alert('<table><td align=left><b>Quality</b>: The default setting for the quality rating task is a 5-point rating scale\n<hr><b>Error</b>: The default error typology includes 6 classes: reordering errors, wrong lexical choices, missing word(s), superfluous word(s), morphology errors, casing and punctuation errors.\n<hr><b>Alignment</b>: The default setting for the word alignment task allows to annotate 2 alignment types, distinguishing between `possible` and `sure` alignments.</td></table>'); return false;"></a>
 <?php
@@ -381,7 +387,6 @@ if (count($alreadyUsedValues) == 0) {
 
 <div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">
 <?php	
-	$tasks = getTasks($mysession["userid"]);
 	$ttype = "";
 	while (list ($tid,$tarr) = each($tasks)) {
 		if ($tarr[1] != $ttype) {
