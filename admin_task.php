@@ -237,9 +237,9 @@ function send(form) {
 }*/
 $sentypes = getSentenceType();
  	
-if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") { 
+if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor") { 
 	$sentlabel="Create";
-	$cancelbutton="";
+	$cancelbutton="<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";
 	$visibility_tform="visible";
 	$taskinfo = array("name" => "",
 				  "type" => "",
@@ -252,6 +252,8 @@ if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
 		$taskinfo["ranges"] = $ranges;
 	}
 	if (isset($id)) {
+	$tasks = getTasks($mysession["userid"]);
+	if ($id<0 || isset($tasks{$id})) {
 		$query = "";
 		if (isset($action) && $action="remove") {		
 			if (removeTask($id) == 1) {
@@ -301,9 +303,9 @@ if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
 				if (safe_query($query) != 1) {
 					print "<script>alertify.alert('ERROR! This user has not been saved correctly.');</script>"; 	
 				} else {
-					print "<script>window.open(\"admin.php?section=task&id=$id\", \"_self\");</script>"; 
+					print "<script>window.open(\"admin.php?section=task\", \"_self\");</script>"; 
 				}
-				//print "QUERY: $query<br>";
+				#print "QUERY: $query<br>";
 				$sentlabel = "Update";
 				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";	
 		
@@ -312,15 +314,35 @@ if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
 	} else {
 		$id = "-1";
 	}
-	
-	$tasks = getTasks($mysession["userid"]);
-	if ($id<0 || !isset($tasks{$id})) {
-		$id = -1;
-		print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
-		$visibility_tform="hidden";
-	}
-	
+}
+if (!isset($id) || $id<0 || !isset($tasks{$id})) {
+	$id = -1;
+	print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
+	$visibility_tform="hidden";
+}
 ?>
+</div>
+
+<div style="white-space: nowrap; float: left; padding-left: 2px; display: inline; position: relative; top: 20px">
+<?php	
+	reset($tasks);
+	$ttype = "";
+	while (list ($tid,$tarr) = each($tasks)) {
+		if ($tarr[1] != $ttype) {
+			$ttype = $tarr[1];
+			print "<br><b>".$taskTypes[$ttype] ." tasks</b><hr>";
+		}
+		if (isset($id) && $id == $tid) {
+			print "<div style='position: absolute; padding-bottom: 2px; left:0px; background: #5c0120'>&nbsp;&nbsp;</div><li type=square class=selected>";
+		} else {
+			print "<li type=square class=row>";
+		}
+		print "<a href=\"javascript:delTask($tid);\"><img border=0 width=12 src='img/remove.png'></a> <a href='admin.php?section=task&id=$tid'>".$tarr[0]."</a> <font color=#444 title='this task has $tarr[2] annotations'>[".$tarr[2]."]</font></li>";
+	}	
+}
+
+?>
+<br><br>
 </div>
 
 <form id="tform" style='margin-right: -2px; border: 2px solid #5c0120; float:left; visibility: <?php echo $visibility_tform; ?>' name="tform" heigth=80 action="admin.php?section=task" method="post" enctype="multipart/form-data">
@@ -346,11 +368,11 @@ if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
 	</select></td></tr>
   <tr><th bgcolor=#ddd align=right>
  	Task name:</th><td><input TYPE=text name="name" value="<?php echo $taskinfo['name']; ?>"> <font size=-1 color=gray>(es. TEST_Errors_EN-AR-ZH)</font> </td></tr>
-<tr><th bgcolor=#ddd align=right valign=top>Short description:</th><td> <textarea rows="3" cols="50" NAME="descr" ><?php echo $taskinfo['descr']; ?></textarea></td></tr>
+<tr><th bgcolor=#ddd align=right valign=top>Short description:</th><td> <textarea rows="3" cols="50" NAME="descr" ><?php echo stripslashes($taskinfo['descr']); ?></textarea></td></tr>
 
 <tr><th bgcolor=#ddd align=right valign=top>Instructions:</th><td> 
 <button onclick="return markup();" id=markupbutton>enable HTML editor</button><br>
-<textarea id="markItUp" rows="7" cols="50" NAME="instructions"><?php echo $taskinfo['instructions']; ?></textarea>
+<textarea id="markItUp" rows="7" cols="50" NAME="instructions"><?php echo stripslashes($taskinfo['instructions']); ?></textarea>
 </td></tr>
 
 <tr><th bgcolor=#ddd align=left colspan=2>Show systems output randomly: <input type="checkbox" name=randout
@@ -384,31 +406,13 @@ if (count($alreadyUsedValues) == 0 && $taskinfo['type'] != "docann") {
   </table>
 
 </form>
+</div>
 
-<div style="float: right; right: 0px; border-left: 2px solid #5c0120; padding-left: 2px; display: inline-block; position: relative; top: 0px">
-<?php	
-	$ttype = "";
-	while (list ($tid,$tarr) = each($tasks)) {
-		if ($tarr[1] != $ttype) {
-			$ttype = $tarr[1];
-			print "<br><b>".$taskTypes[$ttype] ." tasks</b><hr>";
-		}
-		if (isset($id) && $id == $tid) {
-			print "<div style='position: absolute; padding-bottom: 2px; left:0px; background: #5c0120'>&nbsp;&nbsp;</div><li type=square class=selected>";
-		} else {
-			print "<li type=square class=row>";
-		}
-		print "<a href=\"javascript:delTask($tid);\"><img border=0 width=12 src='img/remove.png'></a> <a href='admin.php?section=task&id=$tid'>".$tarr[0]."</a></li>";
-	}	
-
+<?php
 	#show the task ranges
 	if (isset($taskinfo["ranges"]) && $taskinfo["ranges"] != "[]" && $taskinfo["ranges"] != "") {
 		print "<script>showRanges($id,\"".$taskinfo["type"]."\",\"".$taskinfo["ranges"]."\");</script>";
 	} else {
 		print "<script>addRange($id,'');</script>";
 	}
-}
-
 ?>
-</div>
-</div>

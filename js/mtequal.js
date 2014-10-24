@@ -140,6 +140,34 @@ function reset(id,targetid,taskid,userid,errid,sentidx) {
   }	
 }
 
+function resetAnn(id,targetid,taskid,userid,errid,sentidx) {
+  //alert(id+","+targetid+","+errid);
+  if (confirm("Do you really want to cancel all the annotations about this category?")) {
+	$.ajax({
+  		url: 'update.php',
+  		type: 'GET',
+      	data: "id="+id+"&targetid="+targetid+"&userid="+userid+"&check="+errid+"&action=reset",
+  		async: false,
+  		cache:false,
+  		crossDomain: true,
+  		success: function(response) {
+  			//alert(id+","+target_id+","+check);
+  			window.open("docann.php?id="+id+"&taskid="+taskid+"&sentidx="+sentidx,"_top");
+      
+  		},
+  		error: function(response, xhr,err ) {
+        	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
+        	switch(xhr.status) {
+				case 200: 
+					alert("Data saved!");
+			}
+		}
+  	});
+	                  
+  	//$("#errors"+targetid).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",0,1,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",1,2,2);\">Too many errors</td><tr></table>");
+  }	
+}
+
 function save_comment(id, comment) {
 	id = id.replace(/^comm/," ");
 	//alert("Saving.. " + id+" "+comment); //entities
@@ -171,7 +199,7 @@ function notDoneYet()  {
 function alreadyDone()  {
 	doneEl = document.getElementById("done");
  	if (doneEl != null) {
- 		doneEl.innerHTML='&nbsp;&nbsp;&nbsp;&nbsp;DONE!&nbsp;&nbsp;&nbsp;&nbsp;';
+ 		doneEl.innerHTML='Annotation confirmed!';
  		doneEl.style.background='lightgreen';
  		doneEl.disabled=true;
  		doneEl.style.color='black';
@@ -181,7 +209,7 @@ function alreadyDone()  {
 function activateDone(monitoring) {
 	doneEl = document.getElementById("done");
  	if (doneEl != null) {
- 		doneEl.innerHTML='&nbsp;&nbsp;&nbsp;&nbsp;Done?&nbsp;&nbsp;&nbsp;&nbsp;';
+ 		doneEl.innerHTML='Confirm annotation?';
  		
  		if (monitoring==0) {
  			doneEl.disabled=false;

@@ -20,20 +20,50 @@ limitations under the License.
 # get user annotation statistics
 function getUserStats($user_id, $user_status) {
 	$hash = array();
-	if ($user_status == "admin") {
-		$query = "select id,username,name,tasks,count(*),activated from user left join annotation on annotation.user_id=user.id group by id order by id;";
-	} else if ($user_status == "advisor") {
-		$query = "select id,username,name,tasks,count(*),activated from user left join annotation on annotation.user_id=user.id WHERE refuser=$user_id group by id order by id;";
-	} 
-	$result = safe_query($query);	
-	if (mysql_num_rows($result) > 0) {
-		while($row = mysql_fetch_row($result)) {
-			$counter = $row[4];
-			if ($counter == 1) {
-				$counter = 0;
+	if ($user_status == "root" || $user_status == "admin" || $user_status == "advisor") {
+		//get the tasks of the admin
+		$admintasks = getUserTasks($user_id);
+		$adminTaskIDs = array_keys($admintasks);
+		if ($user_status == "advisor") {
+			$query = "select id,username,name,activated,status,refuser from user RIGHT JOIN (select team from user where id=$user_id) as b on user.team=b.team order by status,username;";
+		} else {
+			$query = "select id,username,name,activated,status,refuser from user LEFT JOIN (select distinct user_id from usertask left join task on task.id=usertask.task_id where task.owner=$user_id) AS b ON b.user_id=user.id order by status,username;";
+		} 
+		#$query = "select id,username,name,count(*),activated,status,refuser from user left join annotation on annotation.user_id=user.id group by id order by status,username;";
+		$result = safe_query($query);	
+		if (mysql_num_rows($result) > 0) {
+			while($row = mysql_fetch_row($result)) {
+				/*$counter = $row[3];
+				if ($counter == 1) {
+					$counter = 0;
+				}*/
+				#if ($row[0] == $user_id || $row[6] == $user_id) {
+				#if ($row[0] == $user_id) {
+					#$hash[$row[0]] = array($row[1],$row[2],$counter,$row[4],$row[5]);
+					$hash[$row[0]] = array($row[1],$row[2],$row[3],$row[4]);
+				#} else if ($row[4] != "admin") {
+				#	$usertasks = getUserTasks($row[0]);
+					#print $row[0] . " ". count(array_intersect(array_keys($usertasks),array_keys($admintasks)))."</br>";
+					#if ($user_status == "advisor" && $row[6] == $user_id) {
+					#}
+				#	if (count(array_intersect(array_keys($usertasks),$adminTaskIDs)) > 0) {
+				#		$hash[$row[0]] = array($row[1],$row[2],$row[3],$row[4]);
+				#		#$hash[$row[0]] = array($row[1],$row[2],$counter,$row[4],$row[5]);
+				#	}
+				#}	
 			}
-			$hash[$row[0]] = array($row[1],$row[2],$row[3],$counter,$row[5]);
 		}
+	} 
+	
+	return $hash;
+}
+
+function getUserTasks($userid) {
+	$query = "SELECT task_id,name,type FROM usertask LEFT JOIN task ON usertask.task_id=task.id WHERE user_id='$userid'";
+	$result = safe_query($query);
+	$hash = array();	
+	while ($row = mysql_fetch_row($result)) {
+		$hash[$row[0]] = array($row[1], $row[2]);
 	}
 	return $hash;
 }
@@ -117,9 +147,11 @@ function removeUserTask($userid, $taskid) {
 }
 
 function addUserTask($userid, $taskid) {
-	$query ="INSERT INTO usertask VALUES ($userid,$taskid)";
-	if (safe_query($query) == 1) {
-		return 1;
+	if (!empty($userid) && !empty($taskid)) {
+		$query ="INSERT INTO usertask VALUES ($userid,$taskid)";
+		if (safe_query($query) == 1) {
+			return 1;
+		}
 	}
 	return 0;
 }
@@ -529,12 +561,12 @@ function getOutputSentence($sourceId, $type) {
 
 # get hash with uniq info about the available sentences for a task: sentence_num, text
 function getSourceSentences($taskid) {
-	$query = "SELECT num,lang,text FROM sentence WHERE task_id='$taskid' AND linkto is null order by num;";
+	$query = "SELECT num,lang,text,id FROM sentence WHERE task_id='$taskid' AND linkto is null order by num;";
 	$result = safe_query($query);	
 	$hash = array();
 	if (mysql_num_rows($result) > 0) {
 		while ($row = mysql_fetch_row($result)) {
-			$hash[$row[0]] = array($row[1],$row[2]);
+			$hash[$row[0]] = array($row[1],$row[2],$row[3]);
         }
 	}
 	return $hash;
@@ -646,37 +678,121 @@ function getTaskName($taskid) {
 # get an array with tasks name
 function getTasks($userid) {
 	$hash = array();
-	if ($userid != null && strlen($userid) > 0) {
-		$query = "SELECT tasks,status FROM user WHERE id='$userid'";
-		$result = safe_query($query);
-		if (mysql_num_rows($result) == 1) {
-			$row = mysql_fetch_row($result);
-			if ($row[0] == "all" && $row[1] == "admin") { 
-				$hash = getTasks(null);
-			} 
-		}
-		$query = "SELECT task_id,name,type FROM usertask LEFT JOIN task ON usertask.task_id=task.id WHERE user_id='$userid'";
-		$result = safe_query($query);	
-		while ($row = mysql_fetch_row($result)) {
-			$hash[$row[0]] = array($row[1], $row[2]);
-		}
-		//add also own task
-		$query = "SELECT id,name,type FROM task WHERE owner='$userid'";
-		$result = safe_query($query);	
-		while ($row = mysql_fetch_row($result)) {
-			$hash[$row[0]] = array($row[1], $row[2]);
-		}		
-	} else {
-		$query = "SELECT id,name,type FROM task ORDER BY type, name";
-		$result = safe_query($query);	
-		if (mysql_num_rows($result) > 0) {
-			while ($row = mysql_fetch_row($result)) {
-				#print $row[0] ."= array(".$row[1].", ".$row[2].")<br>";
-				$hash[$row[0]] = array($row[1], $row[2]);
+	//if you are root
+	if (isset($userid)) {
+		$annotationCount=getAnnotationTaskStats();
+		if (intval($userid) == 0) {
+			$query = "SELECT id,name,type FROM task ORDER BY type, name";
+			$result = safe_query($query);	
+			if (mysql_num_rows($result) > 0) {
+				while ($row = mysql_fetch_row($result)) {
+					#print $row[0] ."= array(".$row[1].", ".$row[2].")<br>";
+					$count=0;
+					if (isset($annotationCount[$row[0]])) {
+						$count = $annotationCount[$row[0]];	
+					}
+					$hash[$row[0]] = array($row[1], $row[2],$count);
+				}
 			}
-		}
-	}
+		} else { 
+			$query = "SELECT id,name,type FROM task LEFT JOIN usertask ON task.id=usertask.task_id WHERE user_id='$userid' OR owner='$userid' order by type, name";
+			$result = safe_query($query);	
+			while ($row = mysql_fetch_row($result)) {
+				$count=0;
+				if (isset($annotationCount[$row[0]])) {
+					$count = $annotationCount[$row[0]];	
+				}
+				$hash[$row[0]] = array($row[1], $row[2],$count);
+			}
+			//add also own task
+			//$query = "SELECT id,name,type FROM task WHERE owner='$userid'";
+			//$result = safe_query($query);	
+			//while ($row = mysql_fetch_row($result)) {
+			//	$hash[$row[0]] = array($row[1], $row[2]);
+			//}	
+		}	
+	} 
 	return $hash;
+}
+
+# add data
+function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
+	$errmsg="";
+	$insert=0;
+   	$mappingsID2NUM = getSourceSentenceIdMapping($taskid);
+#	print "TASK: $taskid, TYPE: $type, mappingsID2NUM: ". join(",",$mappingsID2NUM). " ($tokenization,$filepath,$filename)<br>";
+
+	$handle = fopen($filepath, "r");
+	if ($handle) {
+		$linenum = 0;
+		$fileType ="csv";
+		$fileName = "";
+		$txpText="";
+    	while (($line = fgets($handle)) !== false) {
+    		$linenum++;
+ 	   		if (preg_match("/^# FILE:/",$line)) {
+    			$fileType="txp";
+    			$fileName=trim(preg_replace("/^# FILE:/","",$line));
+    		}
+    		if ($fileType == "txp") {
+    			if (preg_match("/^# /",$line)) {
+    				continue;
+    			} else {
+    				if (trim($line) == "" && strlen($txpText) >0) {
+    					$txpText .= "\n";
+    				} else {
+    					$items = explode("\t", trim(htmlentities2utf8($line)));
+    					$txpText .= $items[0] ." ";
+    				}
+    			}
+    		} else {
+    			$query = "";
+       			#print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
+    			$items = explode("\t", htmlentities2utf8($line));
+    			if (count($items) < 3 || empty($items[1])) {
+    				$errmsg = "WARNING! Parse error on file $filename: the language is missed.<br>\n[line: $linenum] $line\n";
+    				break;
+    			}
+    			if ($type == "source") {
+       				$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". str_replace("'","\\'",$items[2]) ."', now());";
+				} else {   			
+       				if (!empty($mappingsID2NUM[$items[0]])) {
+       					if ($type == "reference") {
+       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),0);";
+       					} else {
+       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),".$tokenization.");";
+       					}
+       				} else {
+       					$errmsg = "WARNING! The source of sentence ".$items[0]." is missed. Add the source sentence aligned to this output sentence.<br>";
+       				}
+       			}
+				if (strlen($query) > 0) {
+					$insert += safe_query($query);
+				}
+			}
+    	}
+    	fclose($handle);
+    	if ($fileType == "txp") {
+    		$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('$fileName','".$type."','',$taskid,'".trim(str_replace("'","\\'",$txpText)) ."', now(),1);";
+    		#print $query;
+    		$insert += safe_query($query);
+    	}
+    		
+    	
+    	//add info about used file
+    	/*$query = "DELETE FROM file WHERE type='$type' AND task_id=$taskid";
+    	safe_query($query);
+		$query = "INSERT INTO file VALUES ('$filename','$type',$taskid)";
+    	safe_query($query);
+		*/
+	} else {
+    	// error opening the file.
+    	$errmsg = "ERROR! Some problems occured opening the file $filename.";
+	}
+	#if ($insert == count($mappingsID2NUM)) {
+    #	$errmsg = "DONE! $insert resources have been inserted";
+    #}
+    return $errmsg;
 }
 
 # get system ids and labels
@@ -749,18 +865,18 @@ function getDBInconsistency($userid, $tasks) {
 	
 	
 	//check if all evaluated sentence has full annotated output
-	foreach ($tasks as $taskname) {
-		$taskid=getTaskID($taskname);
+	foreach ($tasks as $taskid) {
 		$tasksyscount=countTaskSystem ($taskid);
 		if ($tasksyscount > 0) {
 			$query="SELECT count(*) FROM done LEFT JOIN sentence ON done.sentence_num=sentence.num WHERE user_id=$userid AND completed='Y' AND task_id=$taskid;";
 			$result = safe_query($query);
 			$row = mysql_fetch_row($result);
 			$num_done = $row[0];
-			
+				
 			$query = "SELECT sentence_num,output_id,count(*) AS count FROM annotation LEFT JOIN sentence ON sentence.num=annotation.sentence_num where task_id=$taskid AND user_id=$userid group by sentence_num,output_id order by sentence_num;";
 			$result = safe_query($query);
 			$hash = array();
+			
 			if (mysql_num_rows($result) > 0) {
 				while ($row = mysql_fetch_row($result)) {
 					if (!in_array($row[1], $array_sentencenum)) {
@@ -854,58 +970,27 @@ function getPrevNext ($taskid, $id) {
 }
 	
 ### EXPORT FUNCTIONS ###
-function exportCSV ($userid) {
-	ini_set('max_execution_time', 1000);
+
+function saveCSVFile ($intDir, $taskid, $userid="") {
+	$taskname=getTaskName($taskid);
+	$tasktype=getTaskType($taskid);
+	$tasksyscount=countTaskSystem ($taskid);
 	
-	$intDir="/tmp";
-	if (!is_dir($intDir)) {
-		mkdir($intDir, 0777);
+	$query_clause = "";
+	if (isset($userid) && $userid != "") {
+		$query_clause = "AND user_id=$userid";
 	}
-	$date = date('Ymd_his', time());
-	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mteval_".$date."/";
-	$intDir .= "/mteval";
-	
-	$query_clause = " status='annotator'";
-	if (isset($userid) && $userid != null) {
-		$query_clause = " user.id='".$userid."'";
-		$intDir .= "_".$userid;	
-	}
-	$intDir .= "_".$date."/";
-	if (!is_dir($intDir)) {
-		mkdir($intDir, 0777);
-	}
-	
-	$tasks = getTasks($userid);
-	while (list ($taskid,$arrinfo) = each($tasks)) {
-		$taskname=$arrinfo[0];
-		$tasksyscount=countTaskSystem ($taskid);
-		
-		$tasktype=$arrinfo[1];
 		//count the number of annotators for the current task
-		$query = "SELECT id FROM user WHERE ".$query_clause." AND (tasks like '%".$taskname."%' OR tasks='all')";
+		$query = "select distinct user_id from annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE task_id=$taskid $query_clause";
 		$result_annotators = safe_query($query);
 		$annotators_count = mysql_num_rows($result_annotators);
-		saveLog("TASK: ". $taskid . " ".$arrinfo[0]. " annotations:".$annotators_count);
+		#print "TASK: ". $taskid . " ($query) annotations:".$annotators_count."<br>";
 			
-		if ($annotators_count > 0) {
-			//collect all valid ids for the current tash (get the interception of annotated output, all user must annotated them)
-			$query = "SELECT sentence_num, count(*) AS n FROM annotation LEFT JOIN user ON annotation.user_id=user.id LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE ".$query_clause." AND task_id=$taskid GROUP BY sentence_num ORDER BY sentence_num";
-			$result_common_taskanns = safe_query($query);
-			$hash_common_taskanns = array();
-			while ($row = mysql_fetch_row($result_common_taskanns)) {
-				// controllo che per il task errors siano stati inseriti X systemi per Y utenti
-				$query = "SELECT DISTINCT output_id,user_id FROM annotation LEFT JOIN user ON annotation.user_id=user.id WHERE ".$query_clause." AND sentence_num=".$row[0];
-				$result_check = safe_query($query);
-				if (mysql_num_rows($result_check) != ($annotators_count * $tasksyscount)) {
-					saveLog("ERROR! $taskname ".$row[0]." -- " . mysql_num_rows($result_check) ." != ".($annotators_count * $tasksyscount));
-					continue;
-				} 	
-				$hash_common_taskanns[$row[0]] = 1;
-			}
-			
+		if ($annotators_count > 0) {					
 			//loop on users
 			while ($row = mysql_fetch_row($result_annotators)) {
 				$userid=$row[0];
+				$sentence_done = getDoneSentences($taskid,$userid);
 				$filecsv = $intDir.$taskname."_ann".$userid.".csv";
 				$fh=fopen($filecsv,"w"); 
 				
@@ -916,7 +1001,9 @@ function exportCSV ($userid) {
 					$fh_comment=fopen($filecsv_comment,"w"); 
 					fwrite($fh_comment,"ID\ttype\tcomment\n");
 					while (list ($sentnum,$comment) = each($comments)) {
-						fwrite($fh_comment,	str_replace("&quot;","\"",$comment)."\n");
+						if (in_array($sentnum,$sentence_done)) {
+							fwrite($fh_comment,	str_replace("&quot;","\"",$comment)."\n");
+						}
 					}
 					fclose($fh_comment); 				
 				}
@@ -937,12 +1024,13 @@ function exportCSV ($userid) {
 				$query = "SELECT output_id,id,type,eval,evalids,sentence_num,lang,text,tokenization FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id;";
 				$result_annotation = safe_query($query);
 				saveLog($taskid . " " . $taskname . " " . mysql_num_rows($result_annotation) . " " . $query);
+				#print "\nC: $taskid, $taskname, $tasktype " . mysql_num_rows($result_annotation) . " " . $query;
 				$last_id = "";
 				$src_text="";
 				#$last_count = 0;
 				while ($row_annotation = mysql_fetch_row($result_annotation)) {
-							
-					if ($last_id != $row_annotation[1]) {
+					if (in_array($row_annotation[5],$sentence_done)) {
+					  if ($last_id != $row_annotation[1]) {
 						$last_id = $row_annotation[1];
 							
 						#get source data
@@ -955,7 +1043,7 @@ function exportCSV ($userid) {
 						
 					$text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_annotation[7]));
 					$trg_tokens = getTokens(preg_replace("/.*_/","", $row_annotation[6]), $text,$row_annotation[8]);
-					if (isset($hash_common_taskanns[$row_annotation[5]])) { 
+					#if (isset($hash_common_taskanns[$row_annotation[5]])) { 
 						$src_tokens = getTokens($row_source[0],$src_text,$row_source[2]);
 						if (preg_match("/quality/i", $tasktype)) {
 							/*if ($last_id != $row_annotation[1]) {
@@ -969,7 +1057,7 @@ function exportCSV ($userid) {
 							}*/
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t" . $row_annotation[2] ."\t". $row_annotation[3] ."\t".count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n");
 						} else if (preg_match("/errors/i", $tasktype)) {
-							$label = "";
+							$label = $row_annotation[3];
 							if ($row_annotation[3] == 0) {
 								$label = "No_errors";
 							} else if ($row_annotation[3] == 1) {
@@ -1027,7 +1115,7 @@ function exportCSV ($userid) {
 							if ($row_annotation[3] > 1 && $strids == "") {
 								continue;
 							}
-							
+														
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".$src_text."\n"); 	
 						} else if (preg_match("/wordaligner/i", $tasktype)) {
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".join(" ", $src_tokens)."\n"); 	
@@ -1036,106 +1124,39 @@ function exportCSV ($userid) {
 						}
 						$count_ann++;
 						#print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
-					} else { 
-						//saveLog("NO INTERCECTION: ". $row_annotation[1] ." ". $row[0] .": $query");
 					}
 				}
 				fclose($fh); 
-				saveLog("SAVED FILE $filecsv: $count_ann $annotators_count $taskname " . mysql_num_rows($result_annotation) . " " . count($hash_common_taskanns));
+				saveLog("SAVED FILE $filecsv: $count_ann $annotators_count $taskname " . mysql_num_rows($result_annotation));
 				if ($count_ann == 0) {
 					unlink($filecsv);
 				}
 				#print "Saved $count_ann annotations."; 
 			}
-		}
-	} //end tasks loop
-	
-			
-	$filezip = "/tmp/mteval$date.zip";
-	
-	$zip = new ZipArchive();
-	if($zip->open($filezip, ZIPARCHIVE::CREATE)!==TRUE){
-		print "ERROR! Sorry ZIP creation failed.";
-	}
-	$files= scandir($intDir);
-	//var_dump($files);
-	//unset($files[0],$files[1]);
-	foreach ($files as $file) {
-		#print "ADD to zip: $file<br>";
-		if ($file != "." && $file != "..") { 
-			if (isset($userid) && $userid != null) {
-				$zip->addFile($intDir.$file,"mteval_CSV_".$userid."-".$date."/".$file);
-			} else {
-  				$zip->addFile($intDir.$file,"mteval_CSV-".$date."/".$file);
-  			}
-  		}    
-	}
-	$zip->close();
-
-	if (file_exists($filezip)) {
-		#print $filezip . " (" . file_exists($filezip) .")";
-		readfile($filezip);
-		
-		unlink($filezip);
-		unlink($intDir);
-		exit(0);
-	}
+		}	
 }
 
-#save XML files
-function exportXML ($userid) {
-	ini_set('max_execution_time', 1000);
-
-	$intDir="/tmp";
-	if (!is_dir($intDir)) {
-		mkdir($intDir, 0777);
-	}
-	$date = date('Ymd_his', time());
-	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mteval_".$date."/";
-	$intDir .= "/mteval";
+function saveXMLFile ($intDir, $taskid, $userid="") {
+	$taskname=getTaskName($taskid);
+	$tasktype=getTaskType($taskid);
+	$tasksyscount=countTaskSystem ($taskid);
 	
-	$query_clause = " status='annotator'";
-	if (isset($userid) && $userid != null) {
-		$query_clause = " user.id='".$userid."'";
-		$intDir .= "_".$userid;	
+	$query_clause = "";
+	if (isset($userid) && $userid != "") {
+		$query_clause = "AND user_id=$userid";
 	}
-	$intDir .= "_".$date."/";	
-	if (!is_dir($intDir)) {
-		mkdir($intDir, 0777);
-	}
-	
-	$tasks = getTasks($userid);
-	while (list ($taskid,$arrinfo) = each($tasks)) {
-		saveLog("TASK: ". $taskid . " ".$arrinfo[0]);
-		//print "TASK: ". $taskid . " ".$arrinfo[0];
-		$taskname=$arrinfo[0];
-		$tasksyscount=countTaskSystem($taskid);
-		
-		$tasktype=$arrinfo[1];
 		//count the number of annotators for the current task
-		$query = "SELECT id FROM user LEFT JOIN usertask ON user.id=usertask.user_id WHERE ".$query_clause." AND (task_id='".$taskid."' OR tasks='all')";
+		$query = "select distinct user_id from annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE task_id=$taskid $query_clause";
 		$result_annotators = safe_query($query);
 		$annotators_count = mysql_num_rows($result_annotators);
-			
+		#print "TASK: ". $taskid . " ($query) annotations:".$annotators_count."<br>";
+		
 		if ($annotators_count > 0) {
-			//collect all valid ids for the current tash (get the interception of annotated output, all user must annotated them)
-			$query = "SELECT sentence_num, count(*) AS n FROM annotation LEFT JOIN user ON annotation.user_id=user.id LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE ".$query_clause." AND task_id=$taskid GROUP BY sentence_num ORDER BY sentence_num";
-			$result_common_taskanns = safe_query($query);
-			$hash_common_taskanns = array();
-			while ($row = mysql_fetch_row($result_common_taskanns)) {
-				// controllo che per il task errors siano stati inseriti X systemi per Y utenti
-				$query = "SELECT DISTINCT output_id,user_id FROM annotation LEFT JOIN user ON annotation.user_id=user.id WHERE ".$query_clause." AND sentence_num=".$row[0];
-				$result_check = safe_query($query);
-				if (mysql_num_rows($result_check) != ($annotators_count * $tasksyscount)) {
-					saveLog("ERROR! $taskname ".$row[0]." -- " . mysql_num_rows($result_check) ." != ".($annotators_count * $tasksyscount));
-					continue;
-				} 	
-				$hash_common_taskanns[$row[0]] = 1;
-			}
-			
-			//loop on users
+				//loop on users
 			while ($row = mysql_fetch_row($result_annotators)) {
 				$userid=$row[0];
+				$sentence_done = getDoneSentences($taskid,$userid);
+				
 				$filecsv = $intDir.$taskname."_ann".$userid.".xml";
 				$fh=fopen($filecsv,"w"); 
 				fwrite($fh,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<".$tasktype."_task>\n");
@@ -1156,7 +1177,7 @@ function exportXML ($userid) {
 				$comments = getComments($taskid,$userid);	
 							
 				while ($row_annotation = mysql_fetch_row($result_annotation)) {
-					if (isset($hash_common_taskanns[$row_annotation[5]])) { 
+					if (in_array($row_annotation[5],$sentence_done)) {
 						if ($last_id != $row_annotation[1]) {
 							if ($last_id != "") {
 								fwrite($fh,"  </system>\n </eval_item>\n");
@@ -1218,7 +1239,7 @@ function exportXML ($userid) {
 							fwrite($fh,"      </tokens>\n");								
 						
 						if (preg_match("/errors/i", $tasktype)) {
-							$label = "";
+							$label = $row_annotation[3];
 							if ($row_annotation[3] == 0) {
 								$label = "No_errors";
 							} else if ($row_annotation[3] == 1) {
@@ -1235,7 +1256,7 @@ function exportXML ($userid) {
 								$label = "Punctuation";
 							} else if ($row_annotation[3] == 7) {
 								$label = "Superfluous";
-							} 
+							} 	
 														
 							$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
 							$cleaned_ids = array();
@@ -1318,9 +1339,7 @@ function exportXML ($userid) {
 					  $count_ann++;
 					  	
 					  #print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
-					} else { 
-						//saveLog("NO INTERCECTION: ". $row_annotation[1] ." ". $row[0] .": $query");
-					}
+				   }
 				}
 							
 				if (mysql_num_rows($result_annotation) > 0) {
@@ -1329,17 +1348,31 @@ function exportXML ($userid) {
 				fwrite($fh,"</".$tasktype."_task>\n");				
 				fclose($fh); 
 				
-				saveLog("SAVED FILE $filecsv: $count_ann $annotators_count $taskname " . mysql_num_rows($result_annotation) . " " . count($hash_common_taskanns));
+				saveLog("SAVED FILE $filecsv: $count_ann $annotators_count $taskname " . mysql_num_rows($result_annotation));
 				if ($count_ann == 0) {
 					unlink($filecsv);
 				}
 				#print "Saved $count_ann annotations."; 
 			}
 		}
-	} //end tasks loop
 	
-			
-	$filezip = "/tmp/mteval-XML_$date.zip";
+}
+
+function exportTaskCSV ($taskid) {
+	$intDir="/tmp";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	$date = date('Ymd_his', time());
+	
+	$intDir .= "/mtequal_".$taskid."_".$date."/";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+
+	saveCSVFile($intDir, $taskid);
+	
+	$filezip = "/tmp/mtequal-CSV_$date.zip";
 	
 	$zip = new ZipArchive();
 	if($zip->open($filezip, ZIPARCHIVE::CREATE)!==TRUE){
@@ -1352,9 +1385,189 @@ function exportXML ($userid) {
 		#print "ADD to zip: $file<br>";
 		if ($file != "." && $file != "..") { 
 			if (isset($userid) && $userid != null) {
-				$zip->addFile($intDir.$file,"mteval_XML_".$userid."-".$date."/".$file);
+				$zip->addFile($intDir.$file,"mtequal_CSV_".$userid."-".$date."/".$file);
 			} else {
-  				$zip->addFile($intDir.$file,"mteval_XML-".$date."/".$file);
+  				$zip->addFile($intDir.$file,"mtequal_CSV-".$date."/".$file);
+  			}
+  		}    
+	}
+	$zip->close();
+
+	if (file_exists($filezip)) {
+		#print $filezip . " (" . file_exists($filezip) .")";
+		readfile($filezip);
+		unlink($filezip);
+	}
+	deleteDirectory($intDir);
+	exit(0);
+}
+
+function exportTaskXML ($taskid) {
+	$intDir="/tmp";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	$date = date('Ymd_his', time());
+	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mtequal_".$date."/";
+	$intDir .= "/mtequal";
+	
+	$query_clause = " status='annotator'";
+	if (isset($userid) && $userid != null) {
+		$query_clause = " user.id='".$userid."'";
+		$intDir .= "_".$userid;	
+	}
+	$intDir .= "_".$date."/";	
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	
+	saveXMLFile($intDir, $taskid);
+	
+	$filezip = "/tmp/mtequal-XML_$date.zip";
+	
+	$zip = new ZipArchive();
+	if($zip->open($filezip, ZIPARCHIVE::CREATE)!==TRUE){
+		print "ERROR! Sorry ZIP creation failed.";
+	}
+	$files= scandir($intDir);
+	//var_dump($files);
+	//unset($files[0],$files[1]);
+	foreach ($files as $file) {
+		#print "ADD to zip: $file<br>";
+		if ($file != "." && $file != "..") { 
+			if (isset($userid) && $userid != null) {
+				$zip->addFile($intDir.$file,"mtequal_XML_".$userid."-".$date."/".$file);
+			} else {
+  				$zip->addFile($intDir.$file,"mtequal_XML-".$date."/".$file);
+  			}
+  		}    
+	}
+	$zip->close();
+
+	if (file_exists($filezip)) {
+		#print $filezip . " (" . file_exists($filezip) .")";
+		readfile($filezip);
+		
+		unlink($filezip);
+		unlink($intDir);
+		exit(0);
+	}	
+}
+
+function exportTaskIOB2 ($taskid) {
+	$intDir="/tmp";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	$date = date('Ymd_his', time());
+	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mtequal_".$date."/";
+	$intDir .= "/mtequal";
+	
+	#$query_clause = " status='annotator'";
+	if (isset($taskid) && $taskid != "") {
+		#$query_clause = " user.id='".$userid."'";
+		$intDir .= "_".$taskid;	
+	}
+	$intDir .= "_".$date."/";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+
+	$query = "select * from annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE task_id=$taskid";
+	$result = safe_query($query);
+	while ($row = mysql_fetch_row($result)) {
+		
+	}		
+}
+
+function exportCSV ($userid) {
+	$intDir="/tmp";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	$date = date('Ymd_his', time());
+	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mtequal_".$date."/";
+	$intDir .= "/mtequal_".$userid."_".$date."/";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	
+	$tasks = getTasks($userid);
+	while (list ($taskid,$arrinfo) = each($tasks)) {
+		saveCSVFile($intDir, $taskid, $userid);
+	} 
+				
+	$filezip = "/tmp/mtequal-CSV_$date.zip";
+	
+	$zip = new ZipArchive();
+	if($zip->open($filezip, ZIPARCHIVE::CREATE)!==TRUE){
+		print "ERROR! Sorry ZIP creation failed.";
+	}
+	$files= scandir($intDir);
+	//var_dump($files);
+	//unset($files[0],$files[1]);
+	foreach ($files as $file) {
+		#print "ADD to zip: $file<br>";
+		if ($file != "." && $file != "..") { 
+			if (isset($userid) && $userid != null) {
+				$zip->addFile($intDir.$file,"mtequal_CSV_".$userid."-".$date."/".$file);
+			} else {
+  				$zip->addFile($intDir.$file,"mtequal_CSV-".$date."/".$file);
+  			}
+  		}    
+	}
+	$zip->close();
+
+	if (file_exists($filezip)) {
+		#print $filezip . " (" . file_exists($filezip) .")";
+		readfile($filezip);
+		unlink($filezip);
+		deleteDirectory($intDir);
+		exit(0);
+	}
+}
+
+#save XML files
+function exportXML ($userid) {
+	$intDir="/tmp";
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	$date = date('Ymd_his', time());
+	#$intDir =$_SERVER['DOCUMENT_ROOT'] ."/mtequal_".$date."/";
+	$intDir .= "/mtequal";
+	
+	$query_clause = " status='annotator'";
+	if (isset($userid) && $userid != null) {
+		$query_clause = " user.id='".$userid."'";
+		$intDir .= "_".$userid;	
+	}
+	$intDir .= "_".$date."/";	
+	if (!is_dir($intDir)) {
+		mkdir($intDir, 0777);
+	}
+	
+	$tasks = getTasks($userid);
+	while (list ($taskid,$arrinfo) = each($tasks)) {
+			saveXMLFile($intDir, $taskid, $userid);
+	} 	
+			
+	$filezip = "/tmp/mtequal-XML_$date.zip";
+	
+	$zip = new ZipArchive();
+	if($zip->open($filezip, ZIPARCHIVE::CREATE)!==TRUE){
+		print "ERROR! Sorry ZIP creation failed.";
+	}
+	$files= scandir($intDir);
+	//var_dump($files);
+	//unset($files[0],$files[1]);
+	foreach ($files as $file) {
+		#print "ADD to zip: $file<br>";
+		if ($file != "." && $file != "..") { 
+			if (isset($userid) && $userid != null) {
+				$zip->addFile($intDir.$file,"mtequal_XML_".$userid."-".$date."/".$file);
+			} else {
+  				$zip->addFile($intDir.$file,"mtequal_XML-".$date."/".$file);
   			}
   		}    
 	}
@@ -1408,23 +1621,27 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 		$id=1;
 		$text = "";
 		foreach ($tokens as $token) {
-			$text .= "<div id=$idx.$id $tokenbg>$token";
-			if (isset($hashTokenidErrortype{$id})) {
-				foreach ($hashTokenidErrortype{$id} as $col) {
-					$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+			if ($token == "__BR__") {
+				$text .= "<br>";
+			} else {
+				$text .= "<div id=$idx.$id $tokenbg>$token";
+				if (isset($hashTokenidErrortype{$id})) {
+					foreach ($hashTokenidErrortype{$id} as $col) {
+						$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+					}
 				}
-			}
-			$text .= "</div>";
-			$spaceId=$id."-".($id+1);
-			$text .= "<div id=$idx.".$spaceId." $spacebg>&nbsp;";
-			if (isset($hashTokenidErrortype{$spaceId})) {
-				foreach ($hashTokenidErrortype{$spaceId} as $col) {
-					$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+				$text .= "</div>";
+				$spaceId=$id."-".($id+1);
+				$text .= "<div id=$idx.".$spaceId." $spacebg>&nbsp;";
+				if (isset($hashTokenidErrortype{$spaceId})) {
+					foreach ($hashTokenidErrortype{$spaceId} as $col) {
+						$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+					}
 				}
-			}
-			$text .= "</div>";
+				$text .= "</div>";
 			
-			$id++;
+				$id++;
+			}
 		}
 	}
 	 
@@ -1559,7 +1776,7 @@ function saveLog($line) {
 	if (SAVELOG == 1) {
 		$time = date( "d/m/Y H:m:s", time() );
 
-		$myFile = "/tmp/mteval.log";
+		$myFile = "/tmp/mtequal.log";
 		$fh = fopen($myFile, 'a') or die("can't open file");
 		fwrite($fh, "$time\t$line\n");
 		fclose($fh);
@@ -1596,6 +1813,20 @@ function safe_query ($query = "") {
     return $result;
 }
 
+//Delete folder function 
+function deleteDirectory($dir) { 
+    if (!file_exists($dir)) return true; 
+    if (!is_dir($dir) || is_link($dir)) return unlink($dir); 
+    foreach (scandir($dir) as $item) { 
+    if ($item == '.' || $item == '..') continue; 
+		if (!deleteDirectory($dir . "/" . $item)) { 
+        	chmod($dir . "/" . $item, 0777); 
+	  		if (!deleteDirectory($dir . "/" . $item)) return false; 
+    	}; 
+    }
+    return rmdir($dir); 
+} 
+    
 #generic function for Mysql query
 function safe_query_OLD ($query = "") {
     global $mysession, $LAST_INSERT_ID;

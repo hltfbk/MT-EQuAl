@@ -146,11 +146,10 @@ DROP TABLE IF EXISTS `user`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `user` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
-  `username` varchar(100) NOT NULL,
-  `password` blob,
+  `username` varchar(50) BINARY NOT NULL,
+  `password` varchar(50) BINARY NOT NULL,
   `name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
-  `tasks` text NOT NULL,
   `status` varchar(20) NOT NULL,
   `team` varchar(10) NOT NULL,
   `activated` enum('Y','N') DEFAULT 'Y',
@@ -160,8 +159,6 @@ CREATE TABLE `user` (
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=48 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
-INSERT INTO user (username, password, name, status,activated,registered,notes) VALUES ("admin","","Default Administrator User", "admin","Y",now(),"please change!");
 
 --
 -- Table structure for table `usertask`
@@ -176,7 +173,7 @@ CREATE TABLE `usertask` (
   PRIMARY KEY (`user_id`,`task_id`),
   KEY `user_id` (`user_id`),
   KEY `task_id` (`task_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

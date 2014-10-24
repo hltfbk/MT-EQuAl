@@ -1,7 +1,9 @@
 <?php
-	include("config.php");
-	include("functions.php");
-	
+ini_set('max_execution_time', 1000);
+
+include("config.php");
+include("functions.php");
+if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor") { 
 	$namefile = "mteval_export".$format;
 	if (isset($userid)) {
 		$namefile .= "_".$userid;
@@ -17,13 +19,21 @@
 	header("Content-Disposition: attachment; filename=\"".$namefile.".zip\"");
 	header("Content-Transfer-Encoding: binary");
 	
-	if (!empty($mysession["status"]) && $mysession["status"] == "admin" || $userid=="3") {
+	if (isset($userid)) {
 		//export CVD format
 		if ($format == "csv") {
 			exportCSV($userid);
 		} else if ($format == "xml") {
 			exportXML($userid);
 		} 
+	} else if (isset($taskid)) {
+		if ($format == "csv") {
+			exportTaskCSV($taskid);
+		} else if ($format == "xml") {
+			exportTaskXML($taskid);
+		} else if ($format == "iob2") {
+			exportTaskIOB2($taskid);
+		}
 	}
-
+}
 ?>

@@ -31,6 +31,9 @@ All code is available at: https://github.com/hltfbk/MT-EQuAl
 
 INSTALLATION:
 ---------------
+This tool is based on Apache, Mysql, PhP software. For their easier installation you can download MAMP (http://www.mamp.info/) for Mac OSX, LAMP (https://help.ubuntu.com/community/ApacheMySQLPHP) for Linux, or WAMP (http://www.wampserver.com/) for Windows platform.
+
+In the case your computer doesn't meet the requirements you can follow these steps:
 
 - Step 1: Install Apache
 Apache is a free open source software which runs over 50% of the world’s web servers.
@@ -79,11 +82,14 @@ Add index.php to the beginning of index files. The page should now look like thi
 Install the MySQL module for php5, type:
 $ sudo apt-get install php5-mysql
 
-- Step 4: deploy MT-EQuAl code
-Unzip MT-EQuAl-1.0.zip or clone the Github repository in your Apache document root directory (for example /www/html/).
-Edit the file initdb.conf and change the value of DB_USER and DB_PASSWORD according your MySQL installation.
 
-If your web server is configured correctly, you should now find your MT-EQuAl application accessible at http://localhost/mtequal/.
+Finally, once you have installed Apache, PHP, and MySQL correctly you can deploy MT-EQuAl code.
+Unzip MT-EQuAl.zip or clone the Github repository (https://github.com/hltfbk/MT-EQuAl.git) in your Apache document root directory (for example /www/html/).
+Edit the file initdb.conf and change the value of DB_USER and DB_PASSWORD according to your MySQL installation.
+
+The default MT-EQuAl root username is "root" with empty password (this user has full administrator privileges). An essential step to secure your MT-EQuAl site is to change your root user credentials, so to prevent your site from being hacked. In order to change the root login edit the ROOTNAME and ROOTPWD in the file initdb.conf.
+
+If your web server is configured correctly, you should now find your MT-EQuAl application accessible at http://127.0.0.1/mtequal/. If your Apache configuration needs a non standard port number you have to add it to the local address like http://127.0.0.1:[portnumber]/mtequal/.
 
 Congratulations! You now have MT-EQuAl stack on your machine!
 
@@ -95,12 +101,6 @@ DATABASE SETUP:
 You will need the init_mtequal.db file located in the data/ directory and to type in these commands:
 $ mysqladmin -u root -p<PASSWORD> create mtequal
 $ mysql -u root -p<PASSWORD> mtequal < data/init_mtequal.db
-
-The default MT-EQuAl username is "admin" with empty password (this user has administrator privileges). An essential step to secure your MT-EQuAl site is to change your admin user credentials, so to prevent your site from being hacked.  You can follow these simple steps:
-- login using "admin" user account;
-- once logged in go to Admin > User and edit the "admin" profile;
-- fill in all the fields (using a non obvious username and password); 
-- click the button "Update" to save your changes.
  
 It is also possible to restore a previous dump of the database following this command:
 $ mysql -u root -p<PASSWORD> mtequal < data/dump/FILE.sql

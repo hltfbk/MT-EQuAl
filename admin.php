@@ -1,4 +1,5 @@
 <?php
+header("Content-type: text/html; charset=utf-8");
 /*
 MT-EQuAl: a Toolkit for Human Assessment of Machine Translation Output
 
@@ -19,13 +20,11 @@ limitations under the License.
 include("config.php");
 include("functions.php");
 
-header("Content-type: text/html; charset=utf-8");
 ?>
 
 <head>
 <title>MT-EQuAl: Administration page</title>
 <link href="css/mtequal.css" rel="styleSheet" type="text/css">
-
 <script type="text/javascript" src="js/alertify/alertify.min.js"></script>
 <link rel="stylesheet" href="js/alertify/alertify.core.css" />
 <link rel="stylesheet" href="js/alertify/alertify.default.css" />
@@ -34,7 +33,16 @@ header("Content-type: text/html; charset=utf-8");
 <script type="text/javascript" src="js/mtequal.js"></script>
 <script>
 alertify.set({ buttonFocus: "cancel" });
-	
+
+function exportTask	($format) {
+	var selectedTask = document.getElementById("taskselection" );
+	if (selectedTask != null) {
+		var $taskid = selectedTask.options[selectedTask.selectedIndex].value;
+		//alert("export.php?format="+$format+"&taskid="+$taskid);
+		window.open("export.php?format="+$format+"&taskid="+$taskid,"_self");
+	}
+}
+
 function showUpload ($taskid, $type) {
 	el = document.getElementById("uploadpane");
 	if (el != null) {
@@ -117,18 +125,18 @@ $(".ziplink").click(function (e) {
 
 <style>
 #tabs {
-            overflow: hidden;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
+    overflow: hidden;
+    width: 100%;
+    margin: 10px 10px 0px 0px;
+    padding: 0px;
+    list-style: none;
+}
 
-        #tabs li {
-            cursor: pointer;
-            float: left;
-            margin: 0 .8em 0 0;
-        }
+#tabs li {
+	cursor: pointer;
+    float: left;
+    margin: 0 .8em 0 0;
+}
 
         #tabs a {
        		position: relative;
@@ -250,9 +258,10 @@ $(".ziplink").click(function (e) {
         }
         
         #content {
-        	width: 100%;
+        	width: auto;
             background: #fff;
-            padding: 2px;
+            padding: 0px;
+            margin-bottom: 20px;
             border: 2px solid #5c0120;
             position: relative;
             z-index: 2;
@@ -266,34 +275,38 @@ $(".ziplink").click(function (e) {
 </style>
 </head>
 <body>
-
-
 <?php
 include("menu.php");
 
-$current_pane="task";
-if (isset($section)) {
-	$current_pane=$section;
-}
-$panels = array();
-if (file_exists("admin_".$current_pane.".php")) {
-	if (isset($mysession) && !empty($mysession["status"])) {
-		if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
-			$panels = array("TASK","DATA","USER","ANNOTATION","STATS & AGREEMENT");
-		} 
-	
-?>
 
-<div class=index><div class=row><div style='margin: 10px; display: inline-block'>
+$panels = array();
+if (isset($mysession) && !empty($mysession["status"])) {
+	if ($mysession["status"] == "root") {
+		$panels = $userTypes["admin"];
+	} else {
+		$panels = $userTypes[$mysession["status"]];
+	}
+}	
+		
+if (count($panels) > 0) {
+	$current_pane = $panels[0];
+	if (isset($section)) {
+		$current_pane=$section;
+	}
+
+if (file_exists("admin_".$current_pane.".php") && in_array($current_pane,$panels)) {
+?>
+<div class=index>
 <ul id="tabs">
 <?php
 	foreach ($panels as $pane) {
-		if (strtolower(preg_replace("/ .*/","",$pane)) == $current_pane) {
-			print"<li><div class=selected name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></div>\n";
+		if ($pane== $current_pane) {
+			print"<li><div class=selected name=\"$pane\"><i>&nbsp;".$adminPanels[$pane] ."&nbsp;</i></div>\n";
 		} else {
-	 		print"<li><a href=\"admin.php?section=".strtolower(preg_replace("/ .*/","",$pane))."\" name=\"$pane\"><i>&nbsp;$pane&nbsp;</i></a>\n";
+	 		print"<li><a href=\"admin.php?section=$pane\" name=\"$pane\"><i>&nbsp;".$adminPanels[$pane]."&nbsp;</i></a>\n";
 		}
 	}	
+	print "<li style=\"float: right\"><button onclick=\"window.open('printable.php".preg_replace("/.*\.[^?]*/","",$_SERVER['REQUEST_URI'])."','print');\">printable version</button>";
 ?>
 </ul>
 
@@ -305,8 +318,10 @@ if (file_exists("admin_".$current_pane.".php")) {
 	} else {
 		print "WARNING! You don't have any administrator permission.";
 	}
- }
+ 
+}
 }
 ?>
+</div>
 </body>
 </html>

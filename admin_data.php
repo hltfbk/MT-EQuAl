@@ -26,18 +26,19 @@ td:hover {
 }
 div.uploadpane {
 	visibility: hidden;
-	height:100%;
-    width:100%;
-    position:fixed;
+	height: 100%;
+    width: 100%;
+    position: fixed;
     left:0;
     top:0;
-    z-index:100 !important;
+    z-index:10 !important;
     background-color: rgba(64, 64, 64, 0.5);
 }
 div.uploadform {
-	left: 30%; top: 30%; 
-	position: absolute; background: #efefef; z-index: 10000;   
-    padding: 20px;
+	left: 30%; 
+	top: 30%; 
+	position: absolute; background: #efefef; z-index: 11;   
+    padding: 10px;
     opacity:1.0; 
     filter:alpha(opacity=100); /* internet explorer */
     -khtml-opacity: 1;      /* khtml, old safari */
@@ -46,6 +47,7 @@ div.uploadform {
     margin: auto auto auto auto;
     vertical-align: middle;
 }
+
 </style>
 </head>
 
@@ -55,95 +57,80 @@ $errmsg="";
 $tasks = getTasks($mysession["userid"]);
     
 if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
-$log = "";	
-if (isset($taskid) && isset($tasks[$taskid])) {
- if (isset($type)) {
-  if (isset($action) && $action="remove") {
-  	if (isAnnotatedTask($taskid) == 0) {
-  		deleteSentences($taskid,$type);
-		$errmsg="DONE! The $type sentences have been removed.";
-  	} else {
-  		print "<script>alert('Warning! This resource cannot be deleted because some annotations are joined to it.');</script>";
-  	}
-  } else {
-  	$insert=0;
-  	$ftmp = $_FILES['filecsv']['tmp_name'];
+  if (isset($taskid) && isset($tasks[$taskid])) {
+  	  if (isset($action) && $action="remove") {
+  		if (isAnnotatedTask($taskid) == 0) {
+  			if (isset($type)) {
+  				deleteSentences($taskid,$type);
+				$errmsg="DONE! The $type resources have been removed.";
+			} else {
+				$errmsg="ERROR! The type information about the task is missed.";
+			}
+  		} else {
+  			print "<script>alert('Warning! This resource cannot be deleted because some annotations are joined to it.');</script>";
+  		}
+  	  } else {
+   		$ftmp = $_FILES['upfile']['tmp_name'];
   	
-   if (!empty($ftmp)) {
-    if ($_FILES["filecsv"]["error"] > 0) {
-    	$errmsg = "Upload error! Try again or contact the administrator.";
-	} else {
-	$oname = basename($_FILES['filecsv']['name']);
-	if (file_exists($ftmp)) {
-		$mappingsID2NUM = getSourceSentenceIdMapping($taskid);
-		//print "TASK: $taskid, TYPE: $type, mappingsID2NUM: ". join(",",$mappingsID2NUM). "<br>";
-
-		$handle = fopen($ftmp, "r");
-		if ($handle) {
-			$linenum = 0;
-    		while (($line = fgets($handle)) !== false) {
-    			$linenum++;
-    			$query = "";
-        		#print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
-    			$items = explode("\t", htmlentities2utf8($line));
-    			if (count($items) < 3 || empty($items[1])) {
-    				$errmsg = "WARNING! Parse error on file $oname: the language is missed.<br>\n[line: $linenum] $line\n";
-    				break;
-    			}
-    			if ($type == "source") {
-        			$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". str_replace("'","\\'",$items[2]) ."', now());";
-        		} else {   			
-        			if (!empty($mappingsID2NUM[$items[0]])) {
-        				$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),".$tokenization.");";
-        			} else {
-        				$errmsg = "WARNING! The source of sentence ".$items[0]." is missed. Add the source sentence aligned to this output sentence.<br>";
-        			}
-        		}
-				if (strlen($query) > 0) {
-					$log .= $query ."<br>";
-					$insert += safe_query($query);
+   		if (!empty($ftmp)) {
+    		if ($_FILES["upfile"]["error"] > 0) {
+    			$errmsg = "Upload error! Try again or contact the administrator.";
+			} else {
+				$oname = basename($_FILES['upfile']['name']);
+	
+			  	if (file_exists($ftmp)) {
+  					if (preg_match("/\.zip$/", $oname)) {
+  						$zip1 = new ZipArchive;
+						$extract1 = $zip1->open($ftmp);
+						if ($extract1 === TRUE) {
+    		   				//Extract the archive contents
+	    				    $zip1->extractTo(dirname($ftmp));
+	    				    if (isset($type) && $type != "") {
+      							for ($i = 0; $i < $zip1->numFiles; $i++) {
+			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
+			    					if (file_exists($f) && is_file($f)) {
+    									$errmsg .= addFileData($taskid,$type,$tokenization,$f, basename($f));
+      								}
+      							}
+      						} else {
+      							#first upload all source files
+      							for ($i = 0; $i < $zip1->numFiles; $i++) {
+			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
+    								$itype=basename(dirname($f));
+    								if ($itype == "source") {
+    									$errmsg .= addFileData($taskid,"source",$tokenization,$f, basename($f));
+      								}
+      							}
+      							#then the rest of the files
+      							for ($i = 0; $i < $zip1->numFiles; $i++) {
+			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
+    								$itype=basename(dirname($f));
+    								if ($itype != "source" && in_array($itype, $sentenceTypes)) {
+    									$errmsg .= addFileData($taskid,$itype,$tokenization,$f, basename($f));
+      								}
+      							}
+      						}			
+							$zip1->close(); 
+   						} else {
+   							$errmsg = "Failed to open zip file (code: $extract1)<br>";
+   						}
+			  		} else {
+			  			if (isset($type)) {
+  							$errmsg .= addFileData($taskid,$type,$tokenization,$ftmp,$oname);
+  						}
+					}	
+				} else {
+					$errmsg = "ERROR! Uploaded file hasn't been parsed correctly.";
 				}
-    		}
-    		fclose($handle);
-    		
-    		## filter SENTENCE_LIMIT number of sentences
-    		if (!isset($limit) && SENTENCE_LIMIT > 0) {
-    			$limit = SENTENCE_LIMIT;
-    		}
-    		if ($type == "source" && $limit > 0 && $insert > $limit) {
-    			$mappingsID2NUM = getSourceSentenceIdMapping($taskid);
-    			while ($insert > $limit) {
-    				$rand_key = array_rand($mappingsID2NUM);
-    				$query = "DELETE FROM sentence WHERE num=".$mappingsID2NUM[$rand_key];
-    				if ( safe_query($query) == 1) {
-    					unset($mappingsID2NUM[$rand_key]);
-    					$insert = $insert-1;
-    				}
+				if ($errmsg == "") {
+    				$errmsg = "DONE! The data has been added.";
     			}
-    		}
-    		
-    		//add info about used file
-    		/*$query = "DELETE FROM file WHERE type='$type' AND task_id=$taskid";
-    		safe_query($query);
-			$query = "INSERT INTO file VALUES ('$oname','$type',$taskid)";
-    		safe_query($query);
-			*/
-		} else {
-    		// error opening the file.
-    		$errmsg = "ERROR! Some problems occured opening the file $oname.";
-		}
-		if ($errmsg == "" || $insert == count($mappingsID2NUM)) {
-    		$errmsg = "DONE! $insert sentences have been inserted";
-    	}
-	} else {
-		$errmsg = "ERROR! Uploaded file hasn't been parsed correctly.";
-	}
-	}
-	} 
-	#print "Uploading... taskid: $taskid, type: $type<br>\n"; #.$_FILES['filecsv']['tmp_name'].
+			}
+		} 
+		#print "Uploading... taskid: $taskid, type: $type<br>\n"; #.$_FILES['upfile']['tmp_name'].
+  	}
+  
   }
- } 
-}
 }
 
 //show stored data
@@ -154,10 +141,10 @@ if (isset($taskid) && isset($tasks[$taskid])) {
 	}
 	print "</tr>\n";	
 	while (list ($tid,$tarr) = each($tasks)) {
-		print "<tr class=row align=right><td><a href='admin.php?section=task&task=".$tarr[0]."'>".$tarr[0]."</a> </td>";
+		print "<tr class=row align=right><td nowrap><a href='admin.php?section=task&id=$tid'>".$tarr[0]."</a> <a href=\"javascript:showUpload($tid,'');\"><img src='img/add.png'></a></td>";
 		$count_hash = countTaskSentences($tid);
 		foreach ($sentenceTypes as $stype) { 
-			print "<td>";
+			print "<td nowrap>";
 			if ($tarr[1] != "docann" || $stype == "source") {
 				if (isset($count_hash[$stype])) {
 					print $count_hash[$stype] ." <a href=\"javascript:delSentences($tid,'$stype');\"><img border=0 width=11 src='img/delete.png'></a>";	
@@ -174,21 +161,23 @@ if (isset($taskid) && isset($tasks[$taskid])) {
 	print "</table>";
 
 //create upload form
-if (!empty($mysession["status"]) && $mysession["status"] == "admin") {
+if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysession["status"] == "root")) {
  ?>
 
 <div id=uploadpane class=uploadpane>
 <div class=uploadform> 
+<div style="float: right; padding-left:10px">[<a href="javascript:hideUpload();">X</a>]</div>
+<br>
 <form action="admin.php?section=data" method="post" id=uploadform enctype="multipart/form-data">
 <input type=hidden name=taskid value="" />
 <input type=hidden name=type value="" />
 
- Import sentences from CSV file <font size=-1><i>(size max. <?php echo (int)(ini_get('upload_max_filesize')); ?>Mb)</i></font>:<br>
- <input type="file" id="filecsv" name="filecsv"> </br><br>
- (you can catch just <INPUT TYPE=text NAME=limit value="<?php if (isset($limit)) { echo $limit;} ?>" size=5> sentences from the file)
+ Upload your file <img src="img/question.png" width=18 onclick="alertify.alert('<div class=textleft><b>CSV format</b>: You can upload the sentences for a specific task using an UTF-8 encoded CSV file. One for the source sentences, one for the reference translation (optional), and one file for each of MT outputs to be evaluated.<br> Each file must contain three columns per line, separated by a tabular space:<br>- sentence ID;<br>- language (en, ar, it, zh,...);<br>- the sentence (using UTF-8 encoding).<br>This format is accepted for quality rating, annotation of translation errors, and word alignment tasks.<br><br><b>Raw text and TextPro format</b>: for the annotation document task you can upload a raw text or a TextPro output file (*.txp).<br><br><b>Zip archive</b><br>Multiple files can be uploaded as a zip file.<br><br><u>NB: the max size of the upload file must be <?php echo (int)(ini_get('upload_max_filesize')); ?>Mb</u></div>'); return false;"></a>:<br>
+<input type="file" id="upfile" name="upfile"> 
+ <!-- </br><br> (you can catch just <INPUT TYPE=text NAME=limit value="<?php if (isset($limit)) { echo $limit;} ?>" size=5> sentences from the file) -->
  
   </br><br>
-  Tokenize sentences: <select name="tokenization">
+  Tokenization: <select name="tokenization">
 	<option value='0'>NO
 	<option value='1'>YES, using spaces only
 	<option value='2'>YES, using spaces and punctuations	

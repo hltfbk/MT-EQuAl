@@ -1,3 +1,7 @@
+<?php
+header("Content-type: text/html; charset=utf-8");
+?>
+
 <html>
 <head>
 <link href="css/mtequal.css" rel="styleSheet" type="text/css">
@@ -5,7 +9,6 @@
 <script type="text/javascript" src="js/mtequal.js"></script>
 	
 <?php
-header("Content-type: text/html; charset=utf-8");
 include("config.php");
 include("functions.php");
 
@@ -42,7 +45,6 @@ if (!isset($sentence_hash["source"])) {
 html{height:100%}body{height:100%;min-width:980px;overflow:hidden;font-family:verdana,arial,helvetica;font-size:12px;margin:0;padding:0;}
 </style>
 </head>
-
 <body>
 
 <div style="background-color: #FFFFFF; z-index:9999; position: absolute; width: 100%; height: 100%; border-right: 1px solid #222; border-left: 1px solid #222">
@@ -54,7 +56,7 @@ html{height:100%}body{height:100%;min-width:980px;overflow:hidden;font-family:ve
 include("menu_sentence.php");
 
 $monitoring=0;
-if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
+if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 	$time = date( "d/m/Y H:m:s", time() );
 	print "<div style='display: inline-block; background: yellow; border: dashed #777 1px; border-radius: 0px 0px 15px 15px;  padding: 9px; font-size:12px; position:absolute; top: 0px; margin-left: 320px; z-index:1000'>Monitoring... sentence <b>$id</b>, user: <b>$userid</b> ($time)<br><a href='admin.php?section=annotation#user$userid' style='float:right'>« Back to Admin</a></div><br>";
 	$monitoring=1;
@@ -168,7 +170,7 @@ $(document).ready(function() {
 </script>	
 
 <?php
-if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
+if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 	print "<script>\n  setTimeout(\"window.open('quality.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";
 }
 ?>			

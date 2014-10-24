@@ -1,13 +1,11 @@
+<div style='margin: 10px; vertical-align: top; top: 0px; display: inline-block'>
 <form action="admin.php?section=stats" method=GET>
 <input type=hidden name=section value="stats" />
 Choose a task: <select onChange="submit()" name='id'><option value=''>
 <?php
 if (isset($mysession)) { 
-	if ($mysession["status"] == "admin") {
-		$tasks = getTasks(null);
-	} else if ($mysession["status"] == "advisor") {
-		$tasks = getTasks($mysession["userid"]);
-	}
+	$tasks = getTasks($mysession["userid"]);
+	
 	$ttype = "";
 	while (list ($tid,$tarr) = each($tasks)) {
 		if ($tarr[1] != $ttype) {
@@ -34,7 +32,6 @@ if (isset($id)) {
 	$taskinfo = getTaskInfo($id);
 	
 	if (count($taskinfo) > 0) {
-	
 	$hash_report = getAnnotationReport($id);
 	$systems = array();
 	$statsTable = "<div style='margin:5px; display: inline-block; padding: 4px; border: 1px solid #000'><table cellspacing=1	 cellpadding=0 border=0><tr bgcolor=#ccc><td align=center>Annotation type</td><td colspan=4 align=center>Systems</td></tr><tr><td></td><td bgcolor='#000'><img width=1></td>";
@@ -62,10 +59,11 @@ if (isset($id)) {
 	$statsTable .= "<tr><td></td><td colspan=".(count($systems)+1)." height=1 bgcolor='#000'><img width=1></td></tr>";
 					
 	reset($hash_report);
-	
+	$colorValue=array();
 	$ranges = rangesJson2Array($taskinfo["ranges"]);
 	while (list ($evalid, $attrs) = each($ranges)) {
 		$statsTable .= "<tr align=right><th bgcolor='".$attrs[1]."'>".$attrs[0]."&nbsp;&nbsp;</th><td bgcolor='#000'><img width=1></td>\n";
+		$colorValue[$attrs[1]]=$attrs[0];
 		reset($systems);
 		while (list ($system,$tot) = each($systems)) {
 			$statsTable .= "<td>";
@@ -112,37 +110,23 @@ if (isset($id)) {
 		}
 		
 		$outputText = "";
-		$hashusers = getUserStats(null,"admin");
+		#$hashusers = getUserStats($mysession["userid"],$mysession["status"]);
 		while ($row = mysql_fetch_array($sentence_records)) {
 			if ($userid != "" && ($userid != $row["user_id"] || $sentid != $row["output_id"] || $sourceid != $row["linkto"])) {
-				if (count($user_annotations) > 0 && isset($hashusers{$userid})) {
-					$auser = "";
-					#Hjerson
-					if ($userid == 47) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; H j e r s o n</td></tr>";
-                    # da 1 a 20 (#48 to #139)
-                    } else if ($userid == 48) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 1 &nbsp; t o &nbsp; 20 &nbsp; (a n n o t a t i o n &nbsp; f r o m &nbsp; s c r a t c h)</td></tr>";
-                    
-                    # da 21 a 40 (#140 to 159)
-                    } else if ($userid == 140) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 21 &nbsp; t o &nbsp; 40 &nbsp; (H j e r s o n &nbsp; r e v i s i o n)</td></tr>";
-                    
-                    # da 41 a 60 (#160 to 179)
-                    } else if ($userid == 160) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 41 &nbsp; t o &nbsp; 60 &nbsp; (h u m a n &nbsp; a n n o t a t i o n &nbsp; r e v i s i o n)</td></tr>";
-                    } 
-                    
-                    $auser .= "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
+				if (isDone($row["linkto"],$row["user_id"]) != 1) {
+					continue;
+				}
+				if (count($user_annotations) > 0) {
+					$auser = "<tr heigth=2>";
 					for ($i=0; $i < count($tokens); $i++) {
 						if (isset($user_annotations["-1"])) {
-							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]."></td></table>";
+							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]." title='User ".$userid.": ".$colorValue[$user_annotations["-1"]]."'></td></table>";
 						} else if (isset($user_annotations[$i+1])) {
 							#$auser .= "<td bgcolor=".$user_annotations[$i+1]."></td>";
 							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2>";
 							$cols = explode(" ", trim($user_annotations[$i+1]));
 							foreach ($cols as $col) {
-								$auser .= "<td bgcolor=".$col."></td>";
+								$auser .= "<td bgcolor=".$col." title='User ".$userid.": ".$colorValue[$col]."'></td>";
 							}
 							$auser .= "</table></td>";
 						} else {
@@ -209,25 +193,8 @@ if (isset($id)) {
 		}
 		//end while
 		
-		if (count($user_annotations) > 0 && isset($hashusers{$userid})) {
-					$auser = "";
-					#Hjerson
-					if ($userid == 47) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; H j e r s o n</td></tr>";
-                    # da 1 a 20 (#48 to #139)
-                    } else if ($userid == 48) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 1 &nbsp; t o &nbsp; 20 &nbsp; (a n n o t a t i o n &nbsp; f r o m &nbsp; s c r a t c h)</td></tr>";
-                    
-                    # da 21 a 40 (#140 to 159)
-                    } else if ($userid == 140) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 21 &nbsp; t o &nbsp; 40 &nbsp; (H j e r s o n &nbsp; r e v i s i o n)</td></tr>";
-                    
-                    # da 41 a 60 (#160 to 179)
-                    } else if ($userid == 160) {
-                    	$auser .= "\n<tr><td style='font-size: 7px; background: #000; color:#fff' colspan=".count($tokens).">&#x2798; U s e r s  &nbsp; f r o m &nbsp; 41 &nbsp; t o &nbsp; 60 &nbsp; (h u m a n &nbsp; a n n o t a t i o n &nbsp; r e v i s i o n)</td></tr>";
-                    } 
-                    
-                    $auser .= "<tr heigth=2 title='User ".$hashusers{$userid}[0]."'>";
+		if (count($user_annotations) > 0) {
+					$auser  = "<tr heigth=2 title='User ".$userid."'>";
 					for ($i=0; $i < count($tokens); $i++) {
 						if (isset($user_annotations["-1"])) {
 							$auser .= "<td><table width=100% border=0 cellspacing=0 cellpadding=2><td bgcolor=".$user_annotations["-1"]."></td></table>";
@@ -269,3 +236,4 @@ if (isset($id)) {
 	}	
 }
 ?>
+</div>

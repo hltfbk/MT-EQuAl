@@ -1,6 +1,6 @@
 <html>
 <head>
-    <link href="css/mtequal.css" rel="styleSheet" type="text/css">
+<link href="css/mtequal.css" rel="styleSheet" type="text/css">
 </head>
 <?php
 include("config.php");
