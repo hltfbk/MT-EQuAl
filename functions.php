@@ -614,9 +614,11 @@ function countTaskSentences ($taskid) {
 
 #get the counter about sentence types of a task
 function countTaskSystem ($taskid) {
-	$query="SELECT distinct type FROM sentence WHERE task_id=$taskid AND type != 'source' AND type != 'reference';";
-	$result = safe_query($query);	
-	return mysql_num_rows($result);
+	if (!empty($taskid)) {
+		$query="SELECT distinct type FROM sentence WHERE task_id=$taskid AND type != 'source' AND type != 'reference';";
+		$result = safe_query($query);	
+		return mysql_num_rows($result);
+	}
 }
 
 #get the list of sentence types
@@ -726,7 +728,10 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
 	$insert=0;
    	$mappingsID2NUM = getSourceSentenceIdMapping($taskid);
 #	print "TASK: $taskid, TYPE: $type, mappingsID2NUM: ". join(",",$mappingsID2NUM). " ($tokenization,$filepath,$filename)<br>";
-
+	#skip the file that start with dot
+	if (preg_match("/^\..+$/",$filename)) {
+		return $errmsg;
+	}	 
 	$handle = fopen($filepath, "r");
 	if ($handle) {
 		$linenum = 0;
@@ -755,17 +760,17 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
        			#print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
     			$items = explode("\t", htmlentities2utf8($line));
     			if (count($items) < 3 || empty($items[1])) {
-    				$errmsg = "WARNING! Parse error on file $filename: the language is missed.<br>\n[line: $linenum] $line\n";
+    				$errmsg = "WARNING! Parse error on file $filename: language is missing.<br>\n[line: $linenum] $line\n";
     				break;
     			}
     			if ($type == "source") {
-       				$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". str_replace("'","\\'",$items[2]) ."', now());";
+       				$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". str_replace("'","\\'",$items[2]) ."', now(), $tokenization);";
 				} else {   			
        				if (!empty($mappingsID2NUM[$items[0]])) {
        					if ($type == "reference") {
        						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),0);";
        					} else {
-       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),".$tokenization.");";
+       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),$tokenization);";
        					}
        				} else {
        					$errmsg = "WARNING! The source of sentence ".$items[0]." is missed. Add the source sentence aligned to this output sentence.<br>";
@@ -1036,18 +1041,19 @@ function saveCSVFile ($intDir, $taskid, $userid="") {
 						$last_id = $row_annotation[1];
 							
 						#get source data
-						$query = "SELECT lang,text,tokenization FROM sentence WHERE id='".$row_annotation[1]."' AND type='source'";
+						$query = "SELECT lang,text,tokenization FROM sentence WHERE task_id=$taskid AND id='".$row_annotation[1]."' AND type='source'";
 						$result_source = safe_query($query);
 						$row_source = mysql_fetch_row($result_source);
 						
 						$src_text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_source[1]));
-					}
-					$label = $taskranges[$row_annotation[3]][0];
+					  }
+					  $label = $taskranges[$row_annotation[3]][0];
 								
-					$text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_annotation[7]));
-					$trg_tokens = getTokens(preg_replace("/.*_/","", $row_annotation[6]), $text,$row_annotation[8]);
-					#if (isset($hash_common_taskanns[$row_annotation[5]])) { 
+					  $text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_annotation[7]));
+					  $trg_tokens = getTokens(preg_replace("/.*_/","", $row_annotation[6]), $text,$row_annotation[8]);
+					  #if (isset($hash_common_taskanns[$row_annotation[5]])) { 
 						$src_tokens = getTokens($row_source[0],$src_text,$row_source[2]);
+												
 						if (preg_match("/quality/i", $tasktype)) {
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t" . $row_annotation[2] ."\t". $row_annotation[3] ."\t".count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n");
 						} else if (preg_match("/errors/i", $tasktype)) {
@@ -1094,7 +1100,7 @@ function saveCSVFile ($intDir, $taskid, $userid="") {
 														
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$row_annotation[3]."\t".$label ."\t". $strids ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".$src_text."\n"); 	
 						} else if (preg_match("/wordaligner/i", $tasktype)) {
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t".$label."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".join(" ", $src_tokens)."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$row_annotation[3] ."\t".$label."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".join(" ", $src_tokens)."\n"); 	
 						} else {
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t".$label."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n"); 	
 						}
@@ -1165,7 +1171,7 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 							$system_id = "";
 							
 							#get source data
-							$query = "SELECT lang,text,tokenization FROM sentence WHERE id='".$row_annotation[1]."' AND type='source'";
+							$query = "SELECT lang,text,tokenization FROM sentence WHERE task_id=$taskid AND id='".$row_annotation[1]."' AND type='source'";
 							$result_source = safe_query($query);
 							$row_source = mysql_fetch_row($result_source);
 							fwrite($fh," <eval_item ID='".$last_id."' language_pair='".$row_source[0]."_".$row_annotation[6]."'>\n");

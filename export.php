@@ -26,7 +26,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 		} else if ($format == "xml") {
 			exportXML($userid);
 		} 
-	} else if (isset($taskid)) {
+	} else if (isset($taskid) && !empty($taskid)) {
 		if ($format == "csv") {
 			exportTaskCSV($taskid);
 		} else if ($format == "xml") {
