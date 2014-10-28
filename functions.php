@@ -677,6 +677,7 @@ function getTaskName($taskid) {
 
 # get an array with tasks name
 function getTasks($userid) {
+	global $taskTypes;
 	$hash = array();
 	//if you are root
 	if (isset($userid)) {
@@ -691,7 +692,9 @@ function getTasks($userid) {
 					if (isset($annotationCount[$row[0]])) {
 						$count = $annotationCount[$row[0]];	
 					}
-					$hash[$row[0]] = array($row[1], $row[2],$count);
+					if (isset($taskTypes[$row[2]])) {
+						$hash[$row[0]] = array($row[1], $row[2],$count);
+					}
 				}
 			}
 		} else { 
@@ -702,7 +705,9 @@ function getTasks($userid) {
 				if (isset($annotationCount[$row[0]])) {
 					$count = $annotationCount[$row[0]];	
 				}
-				$hash[$row[0]] = array($row[1], $row[2],$count);
+				if (isset($taskTypes[$row[2]])) {
+					$hash[$row[0]] = array($row[1], $row[2],$count);
+				}
 			}
 			//add also own task
 			//$query = "SELECT id,name,type FROM task WHERE owner='$userid'";
@@ -895,15 +900,11 @@ function getDBInconsistency($userid, $tasks) {
 				if ($num_done != count($hash)) {
 					$msg = "";
 					if ($num_done == 1) {
-						$msg = "there is ".$num_done." done on ";
+						$msg = "there is ".$num_done." confirmed annotation on ";
 					} else {
-						$msg = "there are ".$num_done." done on ";
+						$msg = "there are ".$num_done." confirmed annotations on ";
 					}
-					if (count($hash) == 1) {
-						$msg .= count($hash)." annotation!";
-					} else {
-						$msg .= count($hash)." annotations!";
-					}
+					$msg .= count($hash) ."!";
 					$hash_error["DONE!".$taskid] = array($taskid, $msg);
 				}
 			}
@@ -972,10 +973,12 @@ function getPrevNext ($taskid, $id) {
 ### EXPORT FUNCTIONS ###
 
 function saveCSVFile ($intDir, $taskid, $userid="") {
-	$taskname=getTaskName($taskid);
-	$tasktype=getTaskType($taskid);
-	$tasksyscount=countTaskSystem ($taskid);
+	$taskinfo = getTaskInfo($taskid);	
+	$taskname=$taskinfo["name"];
+	$tasktype=$taskinfo["type"];
+	$taskranges = rangesJson2Array($taskinfo["ranges"]);
 	
+	$tasksyscount=countTaskSystem ($taskid);
 	$query_clause = "";
 	if (isset($userid) && $userid != "") {
 		$query_clause = "AND user_id=$userid";
@@ -1011,23 +1014,22 @@ function saveCSVFile ($intDir, $taskid, $userid="") {
 			
 				#print "FILE : $fh $filecsv <br>";
 				$count_ann=0;
-				#print "<h3>USER: ".$row[0]."</h3> $filecsv";
+				#print "<h3>USER: ".$row[0]."</h3> $filecsv [$tasktype]";
 				
 				if (preg_match("/quality/i", $tasktype)) {
-				fwrite($fh,"ID\tlanguage_pair\tsystem\tscore\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
+					fwrite($fh,"ID\tlanguage_pair\tsystem\tscore\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
 				} else if (preg_match("/errors/i", $tasktype)) {
-					fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\ttokenIDs\ttarget_tok_num\ttokenized_target_text\tsource_tok_num\tsource_text\n");
-				} else if (preg_match("/wordaligner/i", $tasktype)) {					fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\ttokenIDs\ttarget_tok_num\ttokenized_target_text\tsource_tok_num\ttokenized_source_text\n");
-				} else {				fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\ttokenIDs\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
+				fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\tannotation_label\ttokenIDs\ttarget_tok_num\ttokenized_target_text\tsource_tok_num\tsource_text\n");
+				} else if (preg_match("/wordaligner/i", $tasktype)) {					fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\tannotation_label\ttokenIDs\ttarget_tok_num\ttokenized_target_text\tsource_tok_num\ttokenized_source_text\n");
+				} else {				fwrite($fh,"ID\tlanguage_pair\tsystem\tannotation_typeid\tannotation_label\ttokenIDs\ttarget_tok_num\ttarget_text\tsource_tok_num\tsource_text\n");
 				}	
 				
 				$query = "SELECT output_id,id,type,eval,evalids,sentence_num,lang,text,tokenization FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id;";
+					
 				$result_annotation = safe_query($query);
 				saveLog($taskid . " " . $taskname . " " . mysql_num_rows($result_annotation) . " " . $query);
-				#print "\nC: $taskid, $taskname, $tasktype " . mysql_num_rows($result_annotation) . " " . $query;
 				$last_id = "";
 				$src_text="";
-				#$last_count = 0;
 				while ($row_annotation = mysql_fetch_row($result_annotation)) {
 					if (in_array($row_annotation[5],$sentence_done)) {
 					  if ($last_id != $row_annotation[1]) {
@@ -1040,41 +1042,15 @@ function saveCSVFile ($intDir, $taskid, $userid="") {
 						
 						$src_text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_source[1]));
 					}
-						
+					$label = $taskranges[$row_annotation[3]][0];
+								
 					$text = preg_replace("/[\n|\r]/","",preg_replace("/\t+/"," ",$row_annotation[7]));
 					$trg_tokens = getTokens(preg_replace("/.*_/","", $row_annotation[6]), $text,$row_annotation[8]);
 					#if (isset($hash_common_taskanns[$row_annotation[5]])) { 
 						$src_tokens = getTokens($row_source[0],$src_text,$row_source[2]);
 						if (preg_match("/quality/i", $tasktype)) {
-							/*if ($last_id != $row_annotation[1]) {
-								if ($last_id != "" && $last_count != $annotators_count) {
-									saveLog("ERROR2: " . $last_id);
-								}
-								$last_count=1;
-								$last_id = $row_annotation[1];
-							} else {
-								$last_count++;
-							}*/
 							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t" . $row_annotation[2] ."\t". $row_annotation[3] ."\t".count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n");
 						} else if (preg_match("/errors/i", $tasktype)) {
-							$label = $row_annotation[3];
-							if ($row_annotation[3] == 0) {
-								$label = "No_errors";
-							} else if ($row_annotation[3] == 1) {
-								$label = "Too_many_errors";
-							} else if ($row_annotation[3] == 2) {
-								$label = "Reordering";
-							} else if ($row_annotation[3] == 3) {
-								$label = "Lexicon";
-							} else if ($row_annotation[3] == 4) {
-								$label = "Missing";
-							} else if ($row_annotation[3] == 5) {
-								$label = "Morphology";
-							} else if ($row_annotation[3] == 6) {
-								$label = "Punctuation";
-							} else if ($row_annotation[3] == 7) {
-								$label = "Superfluous";
-							} 
 							$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
 							$cleaned_ids = array();
 							#$savelog=0;
@@ -1116,11 +1092,11 @@ function saveCSVFile ($intDir, $taskid, $userid="") {
 								continue;
 							}
 														
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$label ."\t". $strids ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".$src_text."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t".$row_annotation[3]."\t".$label ."\t". $strids ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".$src_text."\n"); 	
 						} else if (preg_match("/wordaligner/i", $tasktype)) {
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".join(" ", $src_tokens)."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t".$label."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t".join(" ", $trg_tokens)."\t".count($src_tokens)."\t".join(" ", $src_tokens)."\n"); 	
 						} else {
-							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n"); 	
+							fwrite($fh,$row_annotation[1] ."\t". $row_source[0]."_".$row_annotation[6] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\t".$label."\t". $row_annotation[4] ."\t". count($trg_tokens)."\t$text\t".count($src_tokens)."\t".$src_text."\n"); 	
 						}
 						$count_ann++;
 						#print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
@@ -1137,8 +1113,10 @@ function saveCSVFile ($intDir, $taskid, $userid="") {
 }
 
 function saveXMLFile ($intDir, $taskid, $userid="") {
-	$taskname=getTaskName($taskid);
-	$tasktype=getTaskType($taskid);
+	$taskinfo = getTaskInfo($taskid);	
+	$taskname = $taskinfo["name"];
+	$tasktype = $taskinfo["type"];
+	$taskranges = rangesJson2Array($taskinfo["ranges"]);
 	$tasksyscount=countTaskSystem ($taskid);
 	
 	$query_clause = "";
@@ -1171,13 +1149,14 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 				$system_id = "";
 				$tokens=array();
 				$sourcetokens=array();
-				#$last_count = 0;
 				
 				//get comments
 				$comments = getComments($taskid,$userid);	
 							
 				while ($row_annotation = mysql_fetch_row($result_annotation)) {
 					if (in_array($row_annotation[5],$sentence_done)) {
+						$label = $taskranges[$row_annotation[3]][0];
+					
 						if ($last_id != $row_annotation[1]) {
 							if ($last_id != "") {
 								fwrite($fh,"  </system>\n </eval_item>\n");
@@ -1239,25 +1218,6 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 							fwrite($fh,"      </tokens>\n");								
 						
 						if (preg_match("/errors/i", $tasktype)) {
-							$label = $row_annotation[3];
-							if ($row_annotation[3] == 0) {
-								$label = "No_errors";
-							} else if ($row_annotation[3] == 1) {
-								$label = "Too_many_errors";
-							} else if ($row_annotation[3] == 2) {
-								$label = "Reordering";
-							} else if ($row_annotation[3] == 3) {
-								$label = "Lexicon";
-							} else if ($row_annotation[3] == 4) {
-								$label = "Missing";
-							} else if ($row_annotation[3] == 5) {
-								$label = "Morphology";
-							} else if ($row_annotation[3] == 6) {
-								$label = "Punctuation";
-							} else if ($row_annotation[3] == 7) {
-								$label = "Superfluous";
-							} 	
-														
 							$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
 							$cleaned_ids = array();
 							
@@ -1312,13 +1272,6 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 							fwrite($fh,"      </annotation>\n");
 					
 						} else if (preg_match("/wordaligner/i", $tasktype)) {
-							$label = "";
-							if ($row_annotation[3] == 0) {
-								$label = "possible";
-							} else if ($row_annotation[3] == 1) {
-								$label = "sure";
-							}
-							
 							fwrite($fh,"      <annotation type='wordalign' typeid='".$row_annotation[3]."' label='$label'>\n");
 							$splitted_ids = explode(" ",$row_annotation[4]);
 								
@@ -1449,9 +1402,9 @@ function exportTaskXML ($taskid) {
 		readfile($filezip);
 		
 		unlink($filezip);
-		unlink($intDir);
-		exit(0);
-	}	
+	}
+	deleteDirectory($intDir);
+	exit(0);	
 }
 
 function exportTaskIOB2 ($taskid) {
@@ -1522,9 +1475,10 @@ function exportCSV ($userid) {
 		#print $filezip . " (" . file_exists($filezip) .")";
 		readfile($filezip);
 		unlink($filezip);
-		deleteDirectory($intDir);
-		exit(0);
 	}
+	deleteDirectory($intDir);
+	exit(0);
+	
 }
 
 #save XML files
@@ -1578,9 +1532,9 @@ function exportXML ($userid) {
 		readfile($filezip);
 		
 		unlink($filezip);
-		unlink($intDir);
-		exit(0);
-	}	
+	}
+	deleteDirectory($intDir);
+	exit(0);	
 }
 
 ### PRESENTATION FUNCTION ###
@@ -1827,44 +1781,6 @@ function deleteDirectory($dir) {
     return rmdir($dir); 
 } 
     
-#generic function for Mysql query
-function safe_query_OLD ($query = "") {
-    global $mysession, $LAST_INSERT_ID;
-    if (empty($query)) {
-		return FALSE;
-    }
-    
-    #$query = str_replace("\"", "\\\"",$query);
-    print $query . "<br>";
-    $errorno=0;
-
-    $result = mysql_query($query) or $errorno= mysql_errno();
-    if (preg_match("/^INSERT/", $query)) {
-        $LAST_INSERT_ID = mysql_insert_id();
-    }
-    #saveLog($query);
-    if (QUERY_LOG == "yes" && substr(strtolower(trim($query)),0, 6) != "select") {
-		$query = addslashes($query);
-    	$query = "INSERT INTO log (user_id, query, error, lasttime) VALUES (".$mysession['userid'].",\"$query\",\"$errorno\", now());";
-		mysql_query($query) or die ("Error! " . mysql_error());
-	}
-    if ($errorno != 0) {
-		if (QUERY_DEBUG == "no") {
-		    print ("<BR>Query failed: please contact the webmaster " . SYSADMIN . ".");
-		} else {
-			$error = mysql_error();	
-	    	print ("</td></tr></table></td></tr></table><BR>Query failed:" 
-					      . "<li> errorno=" . $errorno
-					      . "<li> error=" . $error
-					      . "<b><li> query=" . $query
-					      . "<p><a href=\"javascript:history.go(-1)\"> Back</a>");
-			exit;
-		}	
-    }
-    return $result;
-}
-
-
 function xml_escape($s) {
 	$s = str_replace("&quot;","\"",$s);
     $s = html_entity_decode($s, ENT_QUOTES, 'UTF-8');

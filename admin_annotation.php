@@ -97,7 +97,7 @@ if (isset($userid) && ($mysession["status"] == "root" || $mysession["status"] ==
 				if (array_key_exists($tid, $tasks)) {
 					$countTasks++;
 					$countAnnotations += $acount;
-					$record .= "<tr><td><li type=square></td><td align=right><small>$tid.</small></td><td><small>&nbsp;".getTaskName($tid)."</small></td>\n<td>: <span style='cursor: nw-resize' title=\"there are $acount sentence/error type  annotations\">".$acount."</span>";
+					$record .= "<tr><td><li type=square></td><td><small>&nbsp;".getTaskName($tid)."</small></td>\n<td>: <span style='cursor: nw-resize' title=\"there are $acount sentence/error type  annotations\">".$acount."</span>";
 					if ($mysession["status"] == "root" || $mysession["status"] == "admin") {
 						$record .= "<a href=\"javascript:delAnnotations($tid,$user_id,'".$useritems[0]."');\"><img title=\"delete ".$useritems[0]."'s annotations from this task\" border=0 width=12 src='img/remove.png'></a>";
 					}
@@ -140,41 +140,42 @@ if (isset($userid) && ($mysession["status"] == "root" || $mysession["status"] ==
 			
 		#annotation/done consistency checking
 		#controllo che se ci sono dei done ci siano le annotazioni (almeno una, per cominciare)
-		$checkdone = "";	
+		$checkdone = "";
 		if ($countAnnotations > 0) {
-			$hash_errors = getDBInconsistency($user_id,array_keys($ltasks));
+			$hash_errors = getDBInconsistency($user_id, array_keys($ltasks));
 			if (count($hash_errors) >0) {
 				$errid_count=0;
-				
 				while (list ($sentid, $infoarr) = each($hash_errors)) {
-					if (strpos($sentid, "DONE!", 0) === 0) {
-						$checkdone = "<img border=0 src='img/database_error.png' title='WARNING! Some done are missed!'> <small>Check <b>DONE! in task ".$infoarr[0]."</b>: ".$infoarr[1]. "</small><br>". $checkdone; 
-					} else {
-						$errid_count++;
-						if ($errid_count == 1) {
-							$checkdone .= "<br><img border=0 src='img/database_error.png' title='WARNING! Some annotations were not saved correctly.'> <small>Check these incomplete annotations or errors: </small><br>";
-							#$checkdone .= " <small>".count($hash_errors) ." severe errors: </small>";
+					if (array_key_exists($infoarr[0], $tasks)) {
+						if (strpos($sentid, "DONE!", 0) === 0) {
+							$checkdone = "<img border=0 src='img/database_error.png' title='WARNING! Some annotations are not confirmed'> <small>In the task <b>".getTaskName($infoarr[0])."</b> ".$infoarr[1]. "</small><br>". $checkdone; 
 						} else {
-							$checkdone .= ", ";
-						}
-						$checkdone .= "<a href='".$tasks[$infoarr[0]][1].".php?id=$sentid&userid=$user_id&taskid=".$infoarr[0]."'>$sentid</a>";
-						if ($infoarr[1] != "") {
-							$checkdone .= " <small>(".$infoarr[1].")</small>";
-						}
-						#$error_export .= "$user_id $sentid\n";
-						if ($errid_count > 30) {
-							$checkdone .= "<small> ... and more</small>";
-							break;
-						}
-						
+							$errid_count++;
+							if ($errid_count == 1) {
+								$checkdone .= "<img border=0 src='img/database_error.png' title='WARNING! Some annotations were not saved correctly.'> <small>Check these incomplete annotations or errors: </small><br>";
+								#$checkdone .= " <small>".count($hash_errors) ." severe errors: </small>";
+							} else {
+								$checkdone .= ", ";
+							}
+							$checkdone .= "<a href='".$tasks[$infoarr[0]][1].".php?id=$sentid&userid=$user_id&taskid=".$infoarr[0]."'>$sentid</a>";
+							if ($infoarr[1] != "") {
+								$checkdone .= " <small>(".$infoarr[1].")</small>";
+							}
+							#$error_export .= "$user_id $sentid\n";
+							if ($errid_count > 30) {
+								$checkdone .= "<small> ... and more</small>";
+								break;
+							}
+						}			
 					}
 				}
-			} else {
-				$checkdone = "<img src='img/done.png' width=14 title='DB consistency checking passed!'> ";
-			}
-		}	
-		$record .= "<td valign=top>$checkdone</td>\n";
-		
+			} 
+		}
+		if (empty($checkdone)) {
+			$record .="<td bgcolor=#B2FF99><img src='img/done.png' width=14 title='DB consistency checking passed!'></td>";
+		} else {	
+			$record .= "<td valign=top bgcolor=lightyellow>$checkdone</td>\n";
+		}
 		#number of annotation
 		$record .= "<td valign=top>$countAnnotations</td>";
 	  	

@@ -52,6 +52,7 @@ li.selected {
 <SCRIPT language="javascript">
 var DEFAULT_ERRORS_RANGES="[{\"val\": \"0\",\"label\": \"No errors\",\"color\": \"C8E8B8\"},{\"val\": \"1\",\"label\": \"Too many errors\",\"color\": \"F0D3A8\"}]";
 var DEFAULT_WORDALIGN_RANGES="[{\"val\": \"0\",\"label\": \"Possible alignment\",\"color\": \"BABABA\"},{\"val\": \"1\",\"label\": \"Sure alignment\",\"color\": \"000000\"}]";
+var DEFAULT_DOCANN_RANGES="[{\"val\": \"0\",\"label\": \"No annotation\",\"color\": \"C8E8B8\"},{\"val\": \"1\",\"label\": \"Too many annotations\",\"color\": \"F0D3A8\"}]";
 var DEFAULT_RANGES="[{\"val\": \"\",\"label\": \"\",\"color\": \"FFFFFF\"}]";
 
 function addRange(taskid, type) {
@@ -163,7 +164,7 @@ function defaultRanges(type) {
 	} else {
 		jsonRanges = getRanges(true);
 		if (jsonRanges != "[]" && jsonRanges != DEFAULT_RANGES && 
-			jsonRanges != DEFAULT_ERRORS_RANGES && jsonRanges != DEFAULT_WORDALIGN_RANGES) {
+			jsonRanges != DEFAULT_ERRORS_RANGES && jsonRanges != DEFAULT_WORDALIGN_RANGES && jsonRanges != DEFAULT_DOCANN_RANGES) {
 			if (!confirm("Do you want to discard your customization and use the default one?")) {
 				return;
 			}
@@ -190,6 +191,8 @@ function setMandatoryRanges(selectel) {
 		showRanges(-1, type, DEFAULT_ERRORS_RANGES);
 	} else if (type == "wordaligner") {
 		showRanges(-1, type, DEFAULT_WORDALIGN_RANGES);
+	} else if (type == "docann") {
+		showRanges(-1, type, DEFAULT_DOCANN_RANGES);
 	} else {
 		showRanges(-1, type, "");
 		addRange(-1,'');
