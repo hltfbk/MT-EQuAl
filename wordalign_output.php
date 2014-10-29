@@ -102,8 +102,8 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		$hash_eval = getErrors($id, $sentence_id, $userid);
 		
 		//start matrix		
-		echo "<script type=\"text/Javascript\">\nvar sourceString=\"". preg_replace('/\"/',"&quot;", join(" ",getTokens($sentence_hash["source"][0], trim($sentence_hash["source"][1])))) ."\";\n".
-			"var targetString=\"".preg_replace('/\"/',"&quot;", join(" ",getTokens($sentence_item[0], trim($sentence_item[1]))))."\";\n";
+		echo "<script type=\"text/Javascript\">\nvar sourceString=\"". preg_replace('/\"/',"&quot;", join(" ",getTokens($sentence_hash["source"][0], trim($sentence_hash["source"][1]), $sentence_hash["source"][2]))) ."\";\n".
+			"var targetString=\"".preg_replace('/\"/',"&quot;", join(" ",getTokens($sentence_item[0], trim($sentence_item[1]), $sentence_item[2])))."\";\n";
 		if (isset($hash_eval[0])) {		
 			echo "var initialPossAlignments=\"".$hash_eval[0][0]."\";\n";
 		} else {	
