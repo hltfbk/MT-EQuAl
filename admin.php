@@ -43,23 +43,6 @@ function exportTask	($format) {
 	}
 }
 
-function showUpload ($taskid, $type) {
-	el = document.getElementById("uploadpane");
-	if (el != null) {
-		el.style.visibility='visible';
-		form = document.getElementById("uploadform");
-    	if (form != null) {
-    		form.taskid.value=$taskid;
-    		form.type.value=$type;    
-    	}
-	}
-}
-function hideUpload () {
-	el = document.getElementById("uploadpane");
-	if (el != null) {
-		el.style.visibility='hidden';
-    }
-}
 function delTask (taskid,type) {
 	alertify.alert("WARNING! You are about to removing all information about this task,<br>including the annotations of ALL THE USERS.");
 	alertify.confirm("Do you really want to REMOVE this task, and both all sentences and all annotations joint to it?", function (e) {
@@ -74,16 +57,6 @@ function delUser (userid) {
 	alertify.confirm("Do you really want to remove this user?", function (e) {
         if (e) {
         	window.open("admin.php?section=user&action=remove&id="+userid, "_self");
-		}
-	});	
-}
-function delSentences(taskid,type) {
-	if (type=="source") {
-		alert("WARNING! You are removing SOURCE sentences, so the alignment with reference and output ones could be not guaranteed any more.");
-	}
-	alertify.confirm("Do you really want to delete all "+type+" sentences of this task?", function (e) {
-        if (e) {
-        	window.open("admin.php?section=data&action=remove&taskid="+taskid+"&type="+type, "_self");
 		}
 	});	
 }

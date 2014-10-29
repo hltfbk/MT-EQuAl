@@ -49,6 +49,59 @@ div.uploadform {
 }
 
 </style>
+
+<script>
+function upload() {
+	form = document.getElementById("uploadform");
+    if (form != null) {
+    	if (form.upfile.value == "") {
+    		alert("WARNING! You must upload a valid CSV file or ZIP archive.");
+    	} else if (form.tokenization.selectedIndex == 0) {
+    		alert("WARNING! You must select the tokenization that will be applied.");
+    	} else {
+    		form.submit();
+    	}
+    } else {
+    	alert("WARNING! A Javascript error occurred.");
+    }
+}
+
+function showUpload (taskid, tasktype, filetype) {
+	el = document.getElementById("uploadpane");
+	if (el != null) {
+		el.style.visibility='visible';
+		form = document.getElementById("uploadform");
+    	if (form != null) {
+    		form.taskid.value=taskid;
+    		form.filetype.value=filetype;
+    		form.tokenization.selectedIndex = -1;
+    		if (tasktype == "wordaligner") {
+    			form.tokenization.options[4]=null;
+    		} else {
+    			form.tokenization.options[4]=new Option("NO", "0", false, false);
+    		}
+    	}
+	}
+}
+function hideUpload () {
+	el = document.getElementById("uploadpane");
+	if (el != null) {
+		el.style.visibility='hidden';
+    }
+}
+
+function delSentences(taskid,type) {
+	if (type=="source") {
+		alert("WARNING! You are removing SOURCE sentences, so the alignment with reference and output ones could be not guaranteed any more.");
+	}
+	alertify.confirm("Do you really want to delete all "+type+" sentences of this task?", function (e) {
+        if (e) {
+        	window.open("admin.php?section=data&action=remove&taskid="+taskid+"&filetype="+type, "_self");
+		}
+	});	
+}
+
+</script>
 </head>
 
 <?php
@@ -60,11 +113,11 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
   if (isset($taskid) && isset($tasks[$taskid])) {
   	  if (isset($action) && $action="remove") {
   		if (isAnnotatedTask($taskid) == 0) {
-  			if (isset($type)) {
-  				deleteSentences($taskid,$type);
-				$errmsg="DONE! The $type resources have been removed.";
+  			if (isset($filetype)) {
+  				deleteSentences($taskid,$filetype);
+				$errmsg="DONE! The $filetype resources have been removed.";
 			} else {
-				$errmsg="ERROR! The type information about the task is missed.";
+				$errmsg="ERROR! The type information about the task is missing.";
 			}
   		} else {
   			print "<script>alert('Warning! This resource cannot be deleted because some annotations are joined to it.');</script>";
@@ -85,11 +138,11 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 						if ($extract1 === TRUE) {
     		   				//Extract the archive contents
 	    				    $zip1->extractTo(dirname($ftmp));
-	    				    if (isset($type) && $type != "") {
+	    				    if (isset($filetype) && $filetype != "") {
       							for ($i = 0; $i < $zip1->numFiles; $i++) {
 			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
 			    					if (file_exists($f) && is_file($f)) {
-    									$errmsg .= addFileData($taskid,$type,$tokenization,$f, basename($f));
+    									$errmsg .= addFileData($taskid,$filetype,$tokenization,$f, basename($f));
       								}
       							}
       						} else {
@@ -115,8 +168,8 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
    							$errmsg = "Failed to open zip file (code: $extract1)<br>";
    						}
 			  		} else {
-			  			if (isset($type)) {
-  							$errmsg .= addFileData($taskid,$type,$tokenization,$ftmp,$oname);
+			  			if (isset($filetype)) {
+  							$errmsg .= addFileData($taskid,$filetype,$tokenization,$ftmp,$oname);
   						}
 					}	
 				} else {
@@ -127,7 +180,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
     			}
 			}
 		} 
-		#print "Uploading... taskid: $taskid, type: $type<br>\n"; #.$_FILES['upfile']['tmp_name'].
+		#print "Uploading... taskid: $taskid, filetype: $filetype<br>\n"; #.$_FILES['upfile']['tmp_name'].
   	}
   
   }
@@ -141,7 +194,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 	}
 	print "</tr>\n";	
 	while (list ($tid,$tarr) = each($tasks)) {
-		print "<tr class=row align=right><td nowrap><a href='admin.php?section=task&id=$tid'>".$tarr[0]."</a> <a href=\"javascript:showUpload($tid,'');\"><img src='img/add.png'></a></td>";
+		print "<tr class=row align=right><td nowrap><a href='admin.php?section=task&id=$tid'>".$tarr[0]."</a> <a href=\"javascript:showUpload($tid,'".$tarr[1]."','');\"><img src='img/add.png'></a></td>";
 		$count_hash = countTaskSentences($tid);
 		foreach ($sentenceTypes as $stype) { 
 			print "<td nowrap>";
@@ -149,7 +202,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 				if (isset($count_hash[$stype])) {
 					print $count_hash[$stype] ." <a href=\"javascript:delSentences($tid,'$stype');\"><img border=0 width=11 src='img/delete.png'></a>";	
 				}
-				print " <a href=\"javascript:showUpload($tid,'$stype');\"><img src='img/add.png'></a>";
+				print " <a href=\"javascript:showUpload($tid,'".$tarr[1]."','$stype');\"><img src='img/add.png'></a>";
 			}
 			print "</td>";
 		}
@@ -170,7 +223,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 <br>
 <form action="admin.php?section=data" method="post" id=uploadform enctype="multipart/form-data">
 <input type=hidden name=taskid value="" />
-<input type=hidden name=type value="" />
+<input type=hidden name=filetype value="" />
 
  Upload your file <img src="img/question.png" width=18 onclick="alertify.alert('<div class=textleft><b>CSV format</b>: You can upload the sentences for a specific task using an UTF-8 encoded CSV file. One for the source sentences, one for the reference translation (optional), and one file for each of MT outputs to be evaluated.<br> Each file must contain three columns per line, separated by a tabular space:<br>- sentence ID;<br>- language (en, ar, it, zh,...);<br>- the sentence (using UTF-8 encoding).<br>This format is accepted for quality rating, annotation of translation errors, and word alignment tasks.<br><br><b>Raw text and TextPro format</b>: for the annotation document task you can upload a raw text or a TextPro output file (*.txp).<br><br><b>Zip archive</b><br>Multiple files can be uploaded as a zip file.<br><br><u>NB: the max size of the upload file must be <?php echo (int)(ini_get('upload_max_filesize')); ?>Mb</u></div>'); return false;"></a>:<br>
 <input type="file" id="upfile" name="upfile"> 
@@ -178,13 +231,13 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
  
   </br><br>
   Tokenization: <select name="tokenization">
-	<option value='0'>NO
+  	<option value='' disabled>
 	<option value='1'>YES, using spaces only
 	<option value='2'>YES, using spaces and punctuations	
-	<option value='3'>YES, character by character	
+	<option value='3'>YES, character by character
 	</select>
 	</br></br>
-  <input type="submit" name="Upload" value="Upload">	
+  <a href="javascript:upload()"><input type="button" name="Upload" value="Upload"></a>	
   <input type="button" onclick="javascript:hideUpload();" value="Cancel">
 </form>
 </div>
