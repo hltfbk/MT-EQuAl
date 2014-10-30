@@ -241,6 +241,8 @@ function send(form) {
 $sentypes = getSentenceType();
  	
 if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor") { 
+	$tasks = getTasks($mysession["userid"]);
+	
 	$sentlabel="Create";
 	$cancelbutton="<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";
 	$visibility_tform="visible";
@@ -254,9 +256,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 	if (isset($ranges) && $ranges != "[]") {
 		$taskinfo["ranges"] = $ranges;
 	}
-	if (isset($id)) {
-	$tasks = getTasks($mysession["userid"]);
-	if ($id<0 || isset($tasks{$id})) {
+	if (isset($id) && ($id<0 || isset($tasks{$id}))) {
 		$query = "";
 		if (isset($action) && $action="remove") {		
 			if (removeTask($id) == 1) {
@@ -315,13 +315,13 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 			}
 		}		
 	} else {
-		$id = "-1";
+		$id = -1;
+		print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
+		$visibility_tform="hidden";
 	}
-}
+
 if (!isset($id) || $id<0 || !isset($tasks{$id})) {
 	$id = -1;
-	print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
-	$visibility_tform="hidden";
 }
 ?>
 </div>

@@ -75,7 +75,7 @@ function showUpload (taskid, tasktype, filetype) {
     		form.taskid.value=taskid;
     		form.filetype.value=filetype;
     		form.tokenization.selectedIndex = -1;
-    		if (tasktype == "wordaligner") {
+    		if (tasktype == "errors" || tasktype == "wordaligner") {
     			form.tokenization.options[4]=null;
     		} else {
     			form.tokenization.options[4]=new Option("NO", "0", false, false);
