@@ -213,6 +213,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	timeOfLastModification = date.getTime();
 	activeTime = 0;
 
+
 	// Transposes the string form of the alignment.  Changes each x-y into y-x
 	function transposeAlignments(alignmentString) {
 		var transposedAlignmentsString = "";
@@ -249,8 +250,8 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		for(i = 0; i < points.length; i++) {
 			if(points[i].indexOf(dash) > 0) {
 				var point = points[i].split(dash);
-				var x = point[0];
-				var y = point[1];
+				var x = point[0]-1;
+				var y = point[1]-1;
 				if (typeof(grid[x]) == 'undefined' || typeof(grid[x][y]) == 'undefined') {
 					errmsg += " "+x+"-"+y;
 				} else {
@@ -546,7 +547,7 @@ function getCheckedButton (id, color) {
        	}
        	while (true) {
 			if (el.className == color) {
-                ranges += x+"-"+y+" ";
+                ranges += (x+1)+"-"+(y+1)+" ";
             }
             y++;
         	
@@ -634,7 +635,6 @@ function goto (url) {
 	   }
 	}
 }
-	
 </script>
 
 <?php  
@@ -662,4 +662,50 @@ function goto (url) {
 } 
 ?>
 
+<script>
+$(document).ready(function() {
+  	$('.nav-toggle').click(function() {
+		//get collapse content selector
+		var collapse_content_selector = $(this).attr('href');					
+		//make the collapse content to be shown or hide
+		var toggle_switch = $(this);
+		$(collapse_content_selector).toggle(function(){
+			if ($(this).css('display')=='none'){
+				//change the button label to be 'Show'
+				if (this.id.indexOf("comm") == 0) {
+					toggle_switch.html("<img src='img/addcomment.png' style='vertical-align: top; float: right;' width=80>");
+					
+					el = document.getElementById(this.id+"_text");
+					if (el != null) {
+						save_comment(this.id,<?php echo $userid ?>,el.value);
+						$("#"+this.id+"_label").html(el.value);
+						elComment = document.getElementById(this.id+"_label");
+						elComment.style.visibility = "visible";
+						//activateDone();
+					} else {
+						alert("Error while saving the comment! Please contact the administrator. (code: 1001)");
+					}	
+				} else {
+					toggle_switch.html('read more');
+				}
+				
+			}else{
+				//change the button label to be 'Hide'
+				if (this.id.indexOf("comm") == 0) {
+					$("#"+this.id+"_text").focus();
+					elabel = this.id.replace(/_label/,"");
+					elComment = document.getElementById(elabel+"_label");
+					//alert(el.id);
+					if (elComment != null) {
+						elComment.style.visibility = "hidden";
+					}
+					toggle_switch.html("<img src='img/savecomment.png' style='vertical-align: top; float: right;' width=40>");
+				} else {
+					toggle_switch.html('close');
+				}
+			}
+		});
+	});
+});	
+</script>
 

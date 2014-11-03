@@ -57,14 +57,14 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 				  "activated" => "N",
 				  "notes" => "");
 	
-	if (isset($id) && ($id == -1 || array_key_exists($id, $userlist))) {
+	if (isset($id) && ($id<0 || array_key_exists($id, $userlist))) {
 		$query = "";
 		if (isset($action) && $action="remove") {		
 			if (removeUser($id) == 1) {
 				$id=-1;
 				print "<script>alertify.alert('The user information and all his annotations have been removed correctly.'); </script>"; 	
-				print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
-				$visibility_tform="hidden";
+				#print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"showForm(this);\">Create a new user</button>";
+				#$visibility_tform="hidden";
 			}
 		} else {
 			if ($id == -1 || (isset($update) && $update=="Update")) {
@@ -105,6 +105,8 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 				$query = "UPDATE user SET ".substr($query, 1). " WHERE id=$id";
 				if (safe_query($query) != 1) {
 					print "<img src='img/database_error.png'> ERROR! This user has not been saved correctly.<br>"; 
+				} else {
+					print "<script>window.open(\"admin.php?section=user\", \"_self\");</script>"; 
 				}
 				removeUserTask($id, 0);
 				if (isset($utasks) && is_array($utasks)) {
@@ -115,17 +117,16 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 				//print "QUERY: $query<br>";
 				$sentlabel = "Update";
 				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=user','_self');\"  value='Cancel'> ";	
-			
 			}
 		}
 	} else {
-		$id = "-1";
+		$id = -1;
 		print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
 		$visibility_tform="hidden";
 	}
 ?>
-</div>
 
+</div>
 <div style="white-space: nowrap; float: left; left: 0px; padding-left: 2px; display: inline-block; position: relative; top: 20px">
 <?php	
 $userlist = getUserStats($mysession["userid"],$mysession["status"]);
@@ -164,8 +165,10 @@ if (count($userlist) > 0) {
 		
 	}	
 }
-	print "</div>";
 ?>
+<br><br>
+</div>
+
 <form id="tform" style='margin-right: -2px; border: 2px solid #5c0120; float:left; visibility: <?php echo $visibility_tform; ?>' name="tform" heigth=80 action="admin.php?section=user" method="post" enctype="multipart/form-data">
   <input type=hidden name="id" value="<?php echo $id; ?>">
   <table border=0 cellspacing=0 cellpadding=4>

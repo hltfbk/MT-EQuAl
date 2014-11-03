@@ -55,8 +55,7 @@ html{height:100%}body{height:100%;min-width:980px;overflow:hidden;font-family:ve
 include("menu_sentence.php");
 
 $monitoring=0;
-if (isset($userid) && $userid != $mysession['userid'] && 
-	($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
+if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 	$time = date( "d/m/Y H:m:s", time() );
 	print "<div style='display: inline-block; background: yellow; border: dashed #777 1px; border-radius: 0px 0px 15px 15px;  padding: 9px; font-size:12px; position:absolute; top: 0px; margin-left: 320px; z-index:1000'>Monitoring... sentence <b>$id</b>, user: <b>$userid</b> ($time)<br><a href='admin.php?section=annotation#user$userid' style='float:right'>« Back to Admin</a></div><br>";
 	$monitoring=1;
@@ -90,7 +89,7 @@ if ($mysession["taskistr"] != "") {
 
 <?php
 }
-    print "<div style='display: block; width: 100%; float: left; left: 0px; margin-top: 5px'><div class=label>SOURCE: </div>" .showSentence ($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
+    print "<div style='display: block; width: 100%; float: left; left: 0px; margin-top: 5px'><div class=label>SOURCE: </div>" . showSentence($sentence_hash["source"][0], $sentence_hash["source"][1], "source")."<div>";
 	if (isset($sentence_hash["reference"])) {
 		print "<div class=labelref>REFERENCE: </div>" . showSentence ($sentence_hash["reference"][0], $sentence_hash["reference"][1], "reference")."<div>";;
 	}
@@ -112,52 +111,6 @@ if ($mysession["taskistr"] != "") {
                     
 				</div>
 
-
-<script>
-$(document).ready(function() {
-  	$('.nav-toggle').click(function() {
-		//get collapse content selector
-		var collapse_content_selector = $(this).attr('href');					
-		//make the collapse content to be shown or hide
-		var toggle_switch = $(this);
-		$(collapse_content_selector).toggle(function(){
-			if($(this).css('display')=='none'){
-				//change the button label to be 'Show'
-				if (this.id.indexOf("comm") == 0) {
-					toggle_switch.html("<img src='img/addcomment.png' style='vertical-align: top; float: right;' width=80>");
-					
-					el = document.getElementById(this.id+"_text");
-					if (el != null) {
-						save_comment(this.id,el.value);
-						$("#"+this.id+"_label").html(el.value);
-						elComment = document.getElementById(this.id+"_label");
-						elComment.style.visibility = "visible";
-					} else {
-						alert("Error while saving the comment! Please contact the administrator. (code: 1001)");
-					}	
-				} else {
-					toggle_switch.html('read more');
-				}
-				
-			}else{
-				//change the button label to be 'Hide'
-				if (this.id.indexOf("comm") == 0) {
-					$("#"+this.id+"_text").focus();
-					elabel = this.id.replace(/_label/,"");
-					elComment = document.getElementById(elabel+"_label");
-					//alert(el.id);
-					if (elComment != null) {
-						elComment.style.visibility = "hidden";
-					}
-					toggle_switch.html("<img src='img/savecomment.png' style='vertical-align: top; float: right;' width=40>");
-				} else {
-					toggle_switch.html('close');
-				}
-			}
-		});
-	});
-});	
-</script>	
 <?php
 if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 	print "<script>\n  setTimeout(\"window.open('errors.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";

@@ -603,7 +603,7 @@ $(document).ready(function() {
 					
 					el = document.getElementById(this.id+"_text");
 					if (el != null) {
-						save_comment(this.id,el.value);
+						save_comment(this.id,<?php echo $userid ?>,el.value);
 						$("#"+this.id+"_label").html(el.value);
 						elComment = document.getElementById(this.id+"_label");
 						elComment.style.visibility = "visible";

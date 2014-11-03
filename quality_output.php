@@ -136,7 +136,8 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 ?>
 <div class=log id=log></div>       
 
-<script>
+<!-- <script>
+//comment manager
 $(document).ready(function() {
   	$('.nav-toggle').click(function() {
 		//get collapse content selector
@@ -151,7 +152,7 @@ $(document).ready(function() {
 					
 					el = document.getElementById(this.id+"_text");
 					if (el != null) {
-						save_comment(this.id,el.value);
+						save_comment(this.id,<?php echo $userid ?>,el.value);
 						$("#"+this.id+"_label").html(el.value);
 						elComment = document.getElementById(this.id+"_label");
 						elComment.style.visibility = "visible";
@@ -181,8 +182,8 @@ $(document).ready(function() {
 		});
 	});
 });	
-
 </script>
+-->
 <br></br>
 
 </div>

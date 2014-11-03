@@ -220,6 +220,7 @@ function send(form) {
 		}
  		return false;
 	};
+
 </SCRIPT>
 </head>
 
@@ -262,7 +263,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 			if (removeTask($id) == 1) {
 				$id=-1;
 				print "<script>alert('The task information and all annotations refering to it have been removed.'); \nwindow.open(\"admin.php?section=task\", \"_self\");</script>"; 	
-				##print "<button style='position: absolute;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
+				##print "<button style='position: absolute;' onclick=\"showForm(this);\">Create a new task</button>";
 				##$visibility_tform="hidden";
 			} else {
 				print "<script>alertify.alert('ERROR! The task hasn't been removed correctly.'); </script>"; 
@@ -282,8 +283,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 			} else {
 				$taskinfo = getTaskInfo($id);
 				$sentlabel = "Update";
-				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";	
-		
+				$cancelbutton = "<input type=button onclick=\"javascript:window.open('admin.php?section=task','_self');\"  value='Cancel'> ";		
 			}
 			
 			if ($id == -1) {
@@ -316,7 +316,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 		}		
 	} else {
 		$id = -1;
-		print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new task</button>";
+		print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"showForm(this);\">Create a new task</button>";
 		$visibility_tform="hidden";
 	}
 

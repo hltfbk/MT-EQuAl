@@ -85,6 +85,14 @@ function showSpinner() {
 	setTimeout("$('.spinner').hide()",28000);          	
 }
 
+function showForm (button) {
+	var form = document.getElementById('tform');
+	if (form != null) {
+		form.style.visibility='visible';
+		button.style.visibility='hidden';
+	}
+}
+	
 $(".ziplink").click(function (e) {
     e.preventDefault();
     var _self = $(this);

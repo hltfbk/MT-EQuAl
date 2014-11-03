@@ -168,13 +168,13 @@ function resetAnn(id,targetid,taskid,userid,errid,sentidx) {
   }	
 }
 
-function save_comment(id, comment) {
+function save_comment(id, userid, comment) {
 	id = id.replace(/^comm/," ");
-	//alert("Saving.. " + id+" "+comment); //entities
+	//alert("Saving... sentid: " + id+" userid:"+userid + "comment: "+comment); //entities
 	$.ajax({
 		url: 'update.php',
   		type: 'GET',
-		data: "id="+id+"&userid=<?php echo $userid;?>&comment="+comment,
+		data: "id="+id+"&userid="+userid+"&comment="+comment,
   		async: false,
   		cache:false,
   		crossDomain: true

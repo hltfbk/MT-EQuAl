@@ -1163,12 +1163,13 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 			//get comments
 			$comments = getComments($taskid,$userid);	
 						
-			while ($row_annotation = mysql_fetch_row($result_annotation)) {
+			while ($row_annotation = mysql_fetch_row($result_annotation)) {				
 				if (in_array($row_annotation[5],$sentence_done)) {
 					$label = $taskranges[$row_annotation[3]][0];
 			
 					if ($last_id != $row_annotation[1]) {
 						if ($last_id != "") {
+							fwrite($fh,"    </target>\n");	
 							fwrite($fh,"  </system>\n </eval_item>\n");
 						}
 						$last_id = $row_annotation[1];
@@ -1199,7 +1200,9 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 						}	
 					}	
 					if ($system_id != $row_annotation[2]) {
+					
 						if ($system_id != "") {
+							fwrite($fh,"    </target>\n");	
 							fwrite($fh,"  </system>\n");
 						}
 						$system_id = $row_annotation[2];
@@ -1226,85 +1229,84 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 							$i++;
 						}
 						fwrite($fh,"      </tokens>\n");								
+					}
 					
-						if (preg_match("/errors/i", $tasktype)) {
-							$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
-							$cleaned_ids = array();
+					if (preg_match("/errors/i", $tasktype)) {
+						$splitted_ids = explode(",",preg_replace("/^,/","",$row_annotation[4]));
+						$cleaned_ids = array();
 							
-							foreach ($splitted_ids as $item_ids) {
-								$ids = explode(" ", trim($item_ids));
-								#if ($savelog == 1) {
-								#	saveLog("=>>>>> "  . trim($item_ids));
-								#}
-								$spaceIDs = array();
-								$tokenIDs = array();
-								foreach ($ids as $id) {
-									if ($id != "") {
-										if (preg_match('/-/',$id)) { 
-											if (!in_array($id, $spaceIDs)) {
-												array_push($spaceIDs, $id);																						
-											}
-										} else {
-											if (!in_array($id, $tokenIDs)) {
-												array_push($tokenIDs, $id);
-											}
+						foreach ($splitted_ids as $item_ids) {
+							$ids = explode(" ", trim($item_ids));
+							#if ($savelog == 1) {
+							#	saveLog("=>>>>> "  . trim($item_ids));
+							#}
+							$spaceIDs = array();
+							$tokenIDs = array();
+							foreach ($ids as $id) {
+								if ($id != "") {
+									if (preg_match('/-/',$id)) { 
+										if (!in_array($id, $spaceIDs)) {
+											array_push($spaceIDs, $id);																						
+										}
+									} else {
+										if (!in_array($id, $tokenIDs)) {
+											array_push($tokenIDs, $id);
 										}
 									}
 								}
-								
-								if (count($tokenIDs) > 0) {
-									array_push($cleaned_ids, join(" ",$tokenIDs));
-								} else if (count($spaceIDs) == 1) {
-									array_push($cleaned_ids, join(" ",$spaceIDs));
-								}
 							}
-							$strids = trim(join(",", $cleaned_ids));
 							
-							#if ($savelog == 1) {
-							#	saveLog($row_annotation[4] . ">>>> " . $strids);
-							#}
-							if ($row_annotation[3] > 1 && $strids == "") {
-								continue;
+							if (count($tokenIDs) > 0) {
+								array_push($cleaned_ids, join(" ",$tokenIDs));
+							} else if (count($spaceIDs) == 1) {
+								array_push($cleaned_ids, join(" ",$spaceIDs));
 							}
-							fwrite($fh,"      <annotation type='error' typeid='".$row_annotation[3]."' label='".$label."'>\n");
-							foreach ($cleaned_ids as $ids) {
-								fwrite($fh,"        <span>\n");
-								foreach (explode(" ", $ids) as $id) {
-									fwrite($fh,"          <token id='$id'");
-									if (preg_match('/-/',$id)) {
-										fwrite($fh,"/>\n");
-									} else {
-										fwrite($fh,">".xml_escape($tokens[($id-1)])."</token>\n");
-									} 	
-								}
-								fwrite($fh,"        </span>\n");								
-							}							
-							fwrite($fh,"      </annotation>\n");
-					
-						} else if (preg_match("/wordaligner/i", $tasktype)) {
-							fwrite($fh,"      <annotation type='wordalign' typeid='".$row_annotation[3]."' label='$label'>\n");
-							$splitted_ids = explode(" ",$row_annotation[4]);
-								
-							foreach ($splitted_ids as $id) {
-								$xy = explode("-", $id);
-								if (isset($sourcetokens[$xy[0]]) && isset($tokens[$xy[1]])) {
-									fwrite($fh,"        <span>\n");
-									fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]])."</token>\n"); 	
-									fwrite($fh,"          <token from='target' id='".$xy[1]."'>".xml_escape($tokens[$xy[1]])."</token>\n"); 	
-									fwrite($fh,"        </span>\n");
-								}
-																
-							}
-							fwrite($fh,"      </annotation>\n");										
 						}
-					    fwrite($fh,"    </target>\n");	
+						$strids = trim(join(",", $cleaned_ids));
+						
+						#if ($savelog == 1) {
+						#	saveLog($row_annotation[4] . ">>>> " . $strids);
+						#}
+						if ($row_annotation[3] > 1 && $strids == "") {
+							continue;
+						}
+						fwrite($fh,"      <annotation type='error' typeid='".$row_annotation[3]."' label='".$label."'>\n");
+						foreach ($cleaned_ids as $ids) {
+							fwrite($fh,"        <span>\n");
+							foreach (explode(" ", $ids) as $id) {
+								fwrite($fh,"          <token id='$id'");
+								if (preg_match('/-/',$id)) {
+									fwrite($fh,"/>\n");
+								} else {
+									fwrite($fh,">".xml_escape($tokens[($id-1)])."</token>\n");
+								} 	
+							}
+							fwrite($fh,"        </span>\n");								
+						}							
+						fwrite($fh,"      </annotation>\n");
+					
+					} else if (preg_match("/wordaligner/i", $tasktype)) {
+						fwrite($fh,"      <annotation type='wordalign' typeid='".$row_annotation[3]."' label='$label'>\n");
+						$splitted_ids = explode(" ",$row_annotation[4]);
+							
+						foreach ($splitted_ids as $id) {
+							$xy = explode("-", $id);
+							if (isset($sourcetokens[$xy[0]]) && isset($tokens[$xy[1]])) {
+								fwrite($fh,"        <span>\n");
+								fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]])."</token>\n"); 	
+								fwrite($fh,"          <token from='target' id='".$xy[1]."'>".xml_escape($tokens[$xy[1]])."</token>\n"); 	
+								fwrite($fh,"        </span>\n");
+							}
+						}
+						fwrite($fh,"      </annotation>\n");										
 					}
-					$count_ann++;					  	
-					#print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";
 				}
+				$count_ann++;					  	
+				#print $row_annotation[0] ."\t". $row_annotation[1] ."\t". $row_annotation[2] ."\t". $row_annotation[3] ."\n";	
 			}
 						
-			if (mysql_num_rows($result_annotation) > 0) {
+			if (mysql_num_rows($result_annotation) > 0 && count($sentence_done) > 0) {
+				fwrite($fh,"    </target>\n");	
 				fwrite($fh,"  </system>\n</eval_item>\n");
 			}
 			fwrite($fh,"</".$tasktype."_task>\n");				
