@@ -389,6 +389,7 @@ function removeError($id,$targetid,$user_id,$eval,$item) {
 				unset($texts[$i]);				
 			}	
 		}
+		
 		#saveLog("#".join("__BR__",array_filter($texts)) ."<br>!! ".join(",",array_filter($ids)));
 		$ids = array_filter($ids);
 		$texts = array_filter($texts);
@@ -429,9 +430,25 @@ function saveErrors($source_id,$output_id,$user_id,$eval,$evalids="",$evaltext="
 		if (!isset($hash[$eval])) {
 			$evaltext = str_replace("\"","&quot;",stripslashes(trim($evaltext)));	
 			$query = "INSERT INTO annotation (sentence_num,output_id,user_id,eval,evalids,evaltext,lasttime) VALUES ('$source_id','$output_id',$user_id,$eval,'$evalids',\"$evaltext\",now())";
-		} else {	
-			$evaltext = str_replace("\"","&quot;",stripslashes(trim($hash[$eval][1]."__BR__$evaltext")));	
-			$query = "UPDATE annotation SET evalids='".$hash[$eval][0].",$evalids',evaltext=\"$evaltext\",lasttime=now() WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval=$eval;";
+		} else {
+			$list_ids = explode(",", $evalids);
+			$texts = explode("__BR__",$evaltext);
+		
+			$evalids="";
+			$evaltext="";
+			$list_saved_ids = explode(',', $hash[$eval][0]);
+			$t=0;
+			foreach ($list_ids as $sid) {
+				if (!in_array($sid, $list_saved_ids)) {
+					$evalids .= ",$sid";
+					$evaltext .="__BR__".$texts[$t];
+				}
+				$t++;
+			}
+			if ($evalids != "") {
+				$evaltext = str_replace("\"","&quot;",stripslashes(trim($hash[$eval][1]."$evaltext")));	
+				$query = "UPDATE annotation SET evalids='".$hash[$eval][0].trim($evalids)."',evaltext=\"$evaltext\",lasttime=now() WHERE sentence_num='$source_id' AND output_id='$output_id' AND user_id=$user_id AND eval=$eval;";
+			}
 		}
 		#print "Q: $query<br>";
 		safe_query($query);

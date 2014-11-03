@@ -68,7 +68,7 @@ function hideRange(el,sentid,range) {
 function removeAnnotation(id,targetid,ranges,errid) {
   //alert(id+","+ranges);
   if (confirm("Do you really want to cancel this annotation?")) {
-	$.ajax({
+  	$.ajax({
   		url: 'update.php',
   		type: 'GET',
       	data: "id="+id+"&targetid="+targetid+"&userid=<?php echo $userid;?>&check="+errid+"&action=remove&tokenids="+ranges,
@@ -522,7 +522,7 @@ function saveAnnotationRanges(errid) {
 	ranges = ranges.replace(/^,\s*/,"");	
 	entities = entities.replace(/^__BR__\s*/, "");
 	
- //if (send) { // && trim(ranges) != "") { 		
+ //if (send) { // && trim(ranges) != "") { 	
  $.ajax({
   url: 'update.php',
   type: 'GET',
