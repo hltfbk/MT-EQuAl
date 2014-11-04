@@ -263,7 +263,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 			if (removeTask($id) == 1) {
 				$id=-1;
 				print "<script>alert('The task information and all annotations refering to it have been removed.'); \nwindow.open(\"admin.php?section=task\", \"_self\");</script>"; 	
-				##print "<button style='position: absolute;' onclick=\"showForm(this);\">Create a new task</button>";
+				##print "<button id='newtask' style='position: absolute;' onclick=\"showForm(this);\">Create a new task</button>";
 				##$visibility_tform="hidden";
 			} else {
 				print "<script>alertify.alert('ERROR! The task hasn't been removed correctly.'); </script>"; 
@@ -316,7 +316,7 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 		}		
 	} else {
 		$id = -1;
-		print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"showForm(this);\">Create a new task</button>";
+		print "<button id='newtask' style='position: absolute; margin-left: 0px; float: left;' onclick=\"showForm(this);\">Create a new task</button>";
 		$visibility_tform="hidden";
 	}
 
@@ -324,6 +324,7 @@ if (!isset($id) || $id<0 || !isset($tasks{$id})) {
 	$id = -1;
 }
 ?>
+<span class='spinner'><img width=25 src='img/spinner.gif' valign=bottom></span>
 </div>
 
 <div style="white-space: nowrap; float: left; padding-left: 2px; display: inline; position: relative; top: 20px">
@@ -419,3 +420,10 @@ if (count($alreadyUsedValues) == 0 && $taskinfo['type'] != "docann") {
 		print "<script>addRange($id,'');</script>";
 	}
 ?>
+<script>
+$('.spinner').hide();
+var button = document.getElementById('newtask');
+if (button != null) {
+	button.disabled = false;
+}
+</script>

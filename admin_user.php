@@ -121,11 +121,11 @@ if ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysess
 		}
 	} else {
 		$id = -1;
-		print "<button style='position: absolute; margin-left: 0px; float: left;' onclick=\"this.style.visibility='hidden'; document.getElementById('tform').style.visibility='visible';\">Create a new user</button>";
+		print "<button id='newuser' style='position: absolute; margin-left: 0px; float: left;' onclick=\"showForm(this);\" disabled>Create a new user</button>";
 		$visibility_tform="hidden";
 	}
 ?>
-
+<span class='spinner'><img width=25 src='img/spinner.gif' valign=bottom></span>
 </div>
 <div style="white-space: nowrap; float: left; left: 0px; padding-left: 2px; display: inline-block; position: relative; top: 20px">
 <?php	
@@ -229,3 +229,10 @@ if (count($userlist) > 0) {
 	print "WARNING! You don't have enough permission to modify user accounts.";
 }
 ?>
+<script>
+$('.spinner').hide();
+var button = document.getElementById('newuser');
+if (button != null) {
+	button.disabled = false;
+}
+</script>

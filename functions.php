@@ -1308,10 +1308,10 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 							
 						foreach ($splitted_ids as $id) {
 							$xy = explode("-", $id);
-							if (isset($sourcetokens[$xy[0]]) && isset($tokens[$xy[1]])) {
+							if (isset($sourcetokens[$xy[0]-1]) && isset($tokens[$xy[1]-1])) {
 								fwrite($fh,"        <span>\n");
-								fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]])."</token>\n"); 	
-								fwrite($fh,"          <token from='target' id='".$xy[1]."'>".xml_escape($tokens[$xy[1]])."</token>\n"); 	
+								fwrite($fh,"          <token from='source' id='".$xy[0]."'>".xml_escape($sourcetokens[$xy[0]-1])."</token>\n"); 	
+								fwrite($fh,"          <token from='target' id='".$xy[1]."'>".xml_escape($tokens[$xy[1]-1])."</token>\n"); 	
 								fwrite($fh,"        </span>\n");
 							}
 						}
@@ -1569,38 +1569,73 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 	global $languages;
 	$spacebg = " class=token onmouseover=\"this.className='orangebg orangeborderb'\" onmouseout=\"this.className='whitebg whiteborderb'\"";
 	$tokenbg = " class=token onmouseover=\"this.className='orangeborderb'\" onmouseout=\"this.className='whiteborderb'\"";
-	$hashTokenidErrortype = array();
-	while (list ($errID, $errARRAY) = each($hashErrors)) {
-		$tokids = preg_split("[ |,]", $errARRAY[0]);
-		//check the max number of lenght of the current segment of tokens
-		$maxUnderlines = 0;
-		foreach ($tokids as $tid) {
-			if (isset($hashTokenidErrortype{$tid})) {
-				$ccount = count($hashTokenidErrortype{$tid});
-				if ($ccount > $maxUnderlines) {
-					$maxUnderlines = $ccount;
-				}
-			}
-		}
-		
-		foreach ($tokids as $tid) {
-			if (!isset($hashTokenidErrortype{$tid})) {
-				$hashTokenidErrortype{$tid} = array();
-			}
-			while (count($hashTokenidErrortype{$tid}) < $maxUnderlines) {
-				array_push($hashTokenidErrortype{$tid}, "FFF");
-			}
-							
-			array_push($hashTokenidErrortype{$tid}, $colorRange{$errID}[1]);
-		}
-		#<div style='height: 4px'></div>
-		#$hashTokenidErrortype{$tid} = "<div style='background: #".$colorRange{$errID}[1]."; border: 0; width: auto; height: 4px'> </div>";
-		#print "$errID -- ".$errARRAY[0]."<br>";
-	}
 	if ($type == "output") {
 		$tokens = getTokens($lang, $text, $tokenize);
-		$id=1;
 		$text = "";
+		$hashTokenidErrortype = array();
+		if (count($tokens) > 0) {
+			for ($i=0; $i<count($tokens); $i++) {
+				$hashTokenidErrortype{$i} = array();
+				$hashTokenidErrortype{$i."-".($i+1)} = array();
+			}
+			$level=0;
+			while (list ($errID, $errARRAY) = each($hashErrors)) {
+				$tokids = preg_split("/,/", $errARRAY[0]);
+				//check the max number of lenght of the current segment of tokens
+				$loop = 0;
+				while (count($tokids) > 0) {
+					$catched_tids = array();
+					foreach ($tokids as $tids) {
+						$span = preg_split("/ /", $tids);
+						if ($level > 0) {
+							for ($l=0; $l < count($hashTokenidErrortype{0}); $l++) {
+								$freePos=0;
+								foreach ($span as $tid) {
+									if ($hashTokenidErrortype{$tid}[$l]=="FFF") {
+										$freePos++;
+									}	
+								}
+								if ($freePos == count($span)) {
+									foreach ($span as $tid) {
+										$hashTokenidErrortype{$tid}[$l] = $colorRange{$errID}[1];
+									}
+									array_push($catched_tids, $tids);
+									break;
+								}
+							}	
+							if (in_array($tids, $catched_tids)) {
+								continue;
+							}
+						}
+						$freePos=0;
+						foreach ($span as $tid) {
+							#check if all token position are free
+							if (count($hashTokenidErrortype{$tid}) == $loop) {
+								$freePos++;
+							}
+						}
+						if ($freePos == count($span)) {
+							foreach ($span as $tid) {
+								array_push($hashTokenidErrortype{$tid},$colorRange{$errID}[1]);
+							}
+							array_push($catched_tids, $tids);
+						}
+					}
+					$tokids = array_diff($tokids, $catched_tids);
+				
+					//put #FFF foreach remain empty value
+					foreach($hashTokenidErrortype as $tid => $val) {
+						if (count($hashTokenidErrortype{$tid}) == $loop) {
+							array_push($hashTokenidErrortype{$tid}, "FFF");
+						}
+					}
+					$loop++;
+				}
+				$level++;
+			}
+		}
+	
+		$id=1;
 		foreach ($tokens as $token) {
 			if ($token == "__BR__") {
 				$text .= "<br>";
@@ -1608,7 +1643,13 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 				$text .= "<div id=$idx.$id $tokenbg>$token";
 				if (isset($hashTokenidErrortype{$id})) {
 					foreach ($hashTokenidErrortype{$id} as $col) {
-						$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+						$text .= "<div style='background: #". $col .";border-bottom: 1px solid ";
+						if ($col != "FFF") {
+							$text .= "#888;";
+						} else {
+							$text .= "#FFF;";
+						}
+						$text .= "height: 4px'> </div>";
 					}
 				}
 				$text .= "</div>";
@@ -1616,16 +1657,21 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 				$text .= "<div id=$idx.".$spaceId." $spacebg>&nbsp;";
 				if (isset($hashTokenidErrortype{$spaceId})) {
 					foreach ($hashTokenidErrortype{$spaceId} as $col) {
-						$text .= "<div style='background: #". $col ."; border: 0; height: 4px'> </div>";
+						$text .= "<div style='background: #". $col ."; border-bottom: 1px solid ";
+						if ($col != "FFF") {
+							$text .= "#888;";
+						} else {
+							$text .= "#FFF;";
+						}
+						$text .= "height: 4px'> </div>";
 					}
 				}
 				$text .= "</div>";
-			
 				$id++;
 			}
 		}
 	}
-	 
+	
 	$html="<div class='cell $type";
 	if (isset($languages[$lang][2]) && $languages[$lang][2] == "rtl") {
 		$html.=" rtl";
