@@ -101,8 +101,7 @@ function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
    					break;
    				}
    			}
-   		}
-   		
+   		}		
  	}
  	
  	if (checked == totout) {
@@ -112,32 +111,40 @@ function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
     }
 }
 
-function reset(id,targetid,taskid,userid,errid,sentidx) {
-  //alert(id+","+targetid+","+errid);
-  if (confirm("Do you really want to cancel all the annotations in this error category?")) {
-	$.ajax({
-  		url: 'update.php',
-  		type: 'GET',
-      	data: "id="+id+"&targetid="+targetid+"&userid="+userid+"&check="+errid+"&action=reset",
-  		async: false,
-  		cache:false,
-  		crossDomain: true,
-  		success: function(response) {
-  			//alert(id+","+target_id+","+check);
-  			window.open("errors.php?id="+id+"&taskid="+taskid+"&sentidx="+sentidx,"_top");
-      
-  		},
-  		error: function(response, xhr,err ) {
-        	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
-        	switch(xhr.status) {
-				case 200: 
-					alert("Data saved!");
+function reset(id,targetid,taskid,userid,errid,outid) {
+	if (confirm("Do you really want to cancel all the annotations in this error category?")) {
+		$.ajax({
+  			url: 'update.php',
+	 		type: 'GET',
+    	  	data: "id="+id+"&targetid="+targetid+"&taskid="+taskid+"&userid="+userid+"&check="+errid+"&action=reset",
+  			async: false,
+  			cache:false,
+			crossDomain: true,
+			success: function(response) {
+  				//alert(id+","+target_id+","+check);
+  				$("#output"+targetid).html(response);
+				$.ajax({
+  					url: 'errors_type.php',
+ 					type: 'GET',
+  					data: "id="+id+"&targetid="+targetid+"&userid="+userid,
+  					async: false,
+					cache:false,
+  					crossDomain: true,
+  					success: function(response) {
+  						$("#errors"+targetid).html(response);
+					}
+				});
+				//window.open("errors.php?id="+id+"&taskid="+taskid+"&outid="+outid,"_top");
+      		},
+	  		error: function(response, xhr,err ) {
+    	    	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
+        		switch(xhr.status) {
+					case 200: 
+						alert("WARNING! Data has not been saved correctly");
+				}
 			}
-		}
-  	});
-	                  
-  	//$("#errors"+targetid).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",0,1,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",1,2,2);\">Too many errors</td><tr></table>");
-  }	
+  		});
+	}	
 }
 
 function resetAnn(id,targetid,taskid,userid,errid,sentidx) {
@@ -159,12 +166,10 @@ function resetAnn(id,targetid,taskid,userid,errid,sentidx) {
         	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
         	switch(xhr.status) {
 				case 200: 
-					alert("Data saved!");
+					alert("WARNING! Data has not been saved correctly");
 			}
 		}
   	});
-	                  
-  	//$("#errors"+targetid).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",0,1,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+targetid+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('"+id+"','"+targetid+"',"+userid+",1,2,2);\">Too many errors</td><tr></table>");
   }	
 }
 

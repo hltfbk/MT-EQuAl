@@ -71,22 +71,33 @@ function removeAnnotation(id,targetid,ranges,errid) {
   	$.ajax({
   		url: 'update.php',
   		type: 'GET',
-      	data: "id="+id+"&targetid="+targetid+"&userid=<?php echo $userid;?>&check="+errid+"&action=remove&tokenids="+ranges,
+      	data: "id="+id+"&targetid="+targetid+"&taskid=<?php echo $taskid;?>&userid=<?php echo $userid;?>&check="+errid+"&action=remove&tokenids="+ranges,
   		async: false,
   		cache:false,
   		crossDomain: true,
   		success: function(response) {
-  			//alert(id+","+target_id+","+check);
+  			$("#output"+targetid).html(response);
+  			$.ajax({
+  				url: 'errors_type.php',
+ 				type: 'GET',
+  				data: "id=<?php echo $id;?>&targetid="+targetid+"&userid=<?php echo $userid;?>",
+  				async: false,
+  				cache:false,
+  				crossDomain: true,
+  				success: function(response) {
+  					$("#errors"+targetid).html(response);
+				}
+			});
   		},
   		error: function(response, xhr,err ) {
         	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
         	switch(xhr.status) {
 				case 200: 
-					alert("Data saved!");
+					alert("Sorry! Data has not been saved!");
 			}
 		}
   	});
-	window.open("errors_output.php?id="+id+"&sentidx=<?php echo $sentidx; ?>","_self");
+	//window.open("errors_output.php?id="+id+"&sentidx=<?php echo $sentidx; ?>","_self");
                         
   }	
 }
@@ -170,13 +181,13 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 	$checked = 0;
 	print "<div style='width: 100%; position: relative; height: 100%; margin-top:0px; margin-left: -28px;  padding-right: 46px; margin-bottom: auto; overflow-y: auto;'>";
 	if (count($hash_target) > 0) {
-	while (list ($sentence_id, $sentence_item) = each($hash_target)) {
+	  while (list ($sentence_id, $sentence_item) = each($hash_target)) {
 		$errors = getErrors($id,$sentence_id,$userid);
 		if (count($errors) > 0) {
 			$checked++;
 		}
 		print "<table cellpadding=0 cellspacing=2 border=0> <td valign=top>";
-		print "<div class='cell'>";
+		print "<div>";
 		//print "<div style='display: table-cell; float: left; width: 666px'>";
 		
 		//Add output row
@@ -185,7 +196,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		#if(count($errors) == 0) {
 		#	$sent = preg_replace("/<img src='img\/check_error.png' width=16>/","",$sent);
 		#}
-		print "<div class=row><div class=label>OUTPUT <b>".($i+1)."</b>: </div>$sent</div>";
+		print "<div class=row><div class=label>OUTPUT <b>".($i+1)."</b>: </div><div class=cell id='output".$sentence_id."'>$sent</div></div>";
 		//end output row
 		
 		//Add comment row
@@ -196,7 +207,6 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		?>
 		<!-- comment -->
 		<a href='#comm<?php echo $sentence_id; ?>' class='nav-toggle'><img src='img/addcomment.png' style='vertical-align: top; float: right;' width=80></a>&nbsp;</div>
-		<div class=cell>
 			<div id="comm<?php echo $sentence_id; ?>" style="display:none; font-size: 12px;">
 				<textarea id=comm<?php echo $sentence_id; ?>_text rows=2 cols=75 style='background: lightyellow'><?php echo $comment; ?></textarea>
 			</div>
@@ -227,7 +237,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 			if ($val <= 1) {
 				if (count($errors) == 0 || isset($errors[0]) || isset($errors[1])) {
 					$color="#".$attrs[1];
-					$bordercolor="4px solid #".$attrs[1];;
+					$bordercolor="4px solid ".$color;
 					if (isset($errors[$val])) {
 						$bordercolor="4px solid red";
 					}
@@ -276,18 +286,18 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 		
 		print "</table><div style='display: inline-block; border-top: dashed #666 1px; width: 100%'>&nbsp;</div>";
 		$i++;	
-	}
+	  }
 	
-	#print count($hash_target) ."!= $checked || ".isDone($id,$userid);
-	if (isDone($id,$userid) > 0) {
+	  #print count($hash_target) ."!= $checked || ".isDone($id,$userid);
+	  if (isDone($id,$userid) > 0) {
 		print "<script>alreadyDone();</script>";
-	} else {
+	  } else {
 		if ($checked != count($hash_target)) {
 	 		print "<script>notDoneYet();</script>";
 		} else {
 			print "<script>activateDone(".$monitoring.");</script>";
 		}
-	} 
+	  } 
 	} else {
 		print "<h3><font color=red>No output found!</font></h3>";
 	}
@@ -296,183 +306,15 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 <div class=log id=log></div>       
 
 
+<script type="text/javascript" src="js/errors.js"></script>
 <script type="text/javascript" charset="utf-8">
-var down = null;
-var WHITE = "";
-//var COLOR = WHITE;
-var COLOR = "red";
 var ERRORID="<?php echo $errorid; ?>";
 var ERRORCOLOR = "red";
 var OUTPUTID = null;
-
-$('div').mousedown( function () {
-	if (this.id != "") {
-		down = this.id;
-	}
-	$("#log").html(this.id);
-});
-	
-
-/*$('div').mouseover( function () {
-	if (this.id != "") {
-		$("#log").html(this.id);
-	}
-});*/
-
-
-$('div').mouseup( function (event) {
-	<?php if ($monitoring==1) {print "return -1;";} ?>
-    
-	if (this.id != "") {
-		if (this.id.indexOf("error") == 0 || this.id.indexOf("comm") == 0) {
-			return;
-		}
-		
-		var up = this.id;
-		//$("#log").html("SET " +down + " " +up);
-		if (down != null && up != null) {
-			var changed;
-			var sentid = down.replace(/\..+/g,"");
-			var sentidup = up.replace(/\..+/g,"");
-			
- 			//check if the annotation is done within a sentence
-			if (sentid != sentidup) {
-				return;
-			}
-			
-			down = down.replace(/.+\./g,"");
-			up = up.replace(/.+\./g,"");
-			
-			if (parseInt(down) >= parseInt(up)) {
-				var tmpdown = up;
-				up = down;
-				down = tmpdown;
-			}
-			
-			changed = selectTokens(sentid, down, up); 
-			if (changed) {
-    			showAction(sentid, event);
-			} 
-	    	clearSelectedText();
-    		down = null;
-    		up = null;
-		}
-    }
-});
-    
-function showAction(id, event) {	
-	if (OUTPUTID != null && OUTPUTID != id) {
-		cleanBgColor(OUTPUTID);
-	}
-	OUTPUTID = id;
-			
-	moveObject('errortypes',event); 
-    return false;
-}
-
-function cleanBgColor (sentid) {
-	i=1;
-	while (true) {
-		var el = document.getElementById(sentid+"."+i);
-    	if (el != null) {
-    		el.style.backgroundColor = WHITE;
-    	} else {
-    		break;
-    	}
-    	//check spaces
-		el = document.getElementById(sentid+"."+i+"-"+(i+ 1));
-		if (el != null) {
-			el.style.backgroundColor = WHITE;
-		}
-    	i++;	
-	}
-}
-
-function selectTokens (sentid, down, up) {
-    color = null;
-    var changed = false;
-	var askedconfirm = false;
-	//check the spaces
-	if (down.indexOf("-") >0 && down==up) {
-		var el = document.getElementById(sentid+"."+down);
-		if (el != null) {
-			//alert(down+" "+up+ " --- " +el.style.backgroundColor+ " COLOR:" +COLOR+ " " +(el.style.backgroundColor == COLOR));
-			if (el.style.backgroundColor == COLOR) {
-				el.style.backgroundColor = WHITE;
-			} else {
-				el.style.backgroundColor = COLOR;
-				changed = true;
-			}
-		}
-	} else {		
-	    for (var i=parseInt(down); i<=parseInt(up); i++) {
-    		var el = document.getElementById(sentid+"."+i);
-    		//alert(i + " " + up+"/"+down +"  " +el);
-    		if (el != null) {
-    			if (COLOR == WHITE && el.style.backgroundColor == COLOR) {
-    				continue;
-    			}
-    			changed = true;
-    			if (color == null) {
-    				if (el.style.backgroundColor == COLOR) {
-    					if (!askedconfirm) {
-    						askedconfirm = true;
-							/*if (confirm("ATTENTION! Do you want to REMOVE this annotation?")) {
-								//continue;
-							} else {
-								return false;
-							}*/
-						}
-						color = WHITE;
-    				} else {
-    					color = COLOR;
-    				}
-	    		}
-    			//alert(i + " (" +el.style.backgroundColor +") " + color);
-    			
-    			el.style.backgroundColor = color;
-    			//el.style.borderBottom = "0px solid #000";   	
-    		}
-    		if (i != up || color == WHITE) {
-    			el = document.getElementById(sentid+"."+i+"-"+(parseInt(i)+1));
-    			if (el != null) {
-	    			el.style.backgroundColor = color;
-    				//el.style.borderBottom = "0px solid #000";   		
-    			}  	
-    		}
-    	}
-    	if (color==WHITE) {
-			el = document.getElementById(sentid+"."+(parseInt(down)-1)+"-"+down);
-    		if (el != null) {
-    			el.style.backgroundColor = color;   		
-    		} 
-	    }
-	}
-	return changed;
-}
-
-function clearSelectedText() {
-	if (window.getSelection) {
-		window.getSelection().removeAllRanges();
-	} else if (document.getSelection) {
-		document.getSelection().empty();
-	} else {
-		var selection = document.selection && document.selection.createRange();
-		if (selection.text) {
-			selection.collapse(true);
-			selection.select();
-		}
-	}
-}
-
+ 
 function saveAnnotationRanges(errid) {
 	ERRORID = errid;
-	if (ERRORID == "") {
-		ERRORID=errid;
- 	//	$("#log").html('<font color=red>Select an error category from the menu.</font>');     			
- 	//	return;
- 	}
- 	var elid = 1;
+	var elid = 1;
 	var ranges = "";
 	var entities = "";
 	var prevcolor = null;
@@ -489,11 +331,12 @@ function saveAnnotationRanges(errid) {
 					//ranges += "("+getType(prevcolor)+"),";
 					ranges += ","+elid;
 					//entities += " ("+getType(prevcolor)+")__BR__";
-					entities += "__BR__"+el.innerHTML.replace(/<div style=.*$/,"");
+					entities += "__BR__";
 				} else {
 					ranges += " "+elid;
-					entities += " " +el.innerHTML.replace(/<div style=.*$/,"");
+					entities += " ";
 				}
+				entities += encodeURIComponent(el.innerHTML).replace(/%3Cnobr.*$/gi,"")
 			}
 			prevcolor = el.style.backgroundColor;					
 		}
@@ -520,13 +363,14 @@ function saveAnnotationRanges(errid) {
 	
 	//alert("ID: <?php echo $id;?>, OUTPUTID: "+OUTPUTID+", ERRORID: "+ERRORID+", RANGES: "+ranges);
 	ranges = ranges.replace(/^,\s*/,"");	
-	entities = entities.replace(/^__BR__\s*/, "");
+	entities = entities.replace(/^__BR__\s*/, "").replace(/&nbsp;/gi," ");
 	
  //if (send) { // && trim(ranges) != "") { 	
+ 
  $.ajax({
   url: 'update.php',
   type: 'GET',
-  data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&tokenids="+ranges+"&words="+encodeURIComponent(entities.replace(/&nbsp;/gi," ")),
+  data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&tokenids="+ranges+"&taskid=<?php echo $taskid;?>&words="+entities,
   async: false,
   cache:false,
   crossDomain: true,
@@ -536,11 +380,20 @@ function saveAnnotationRanges(errid) {
   		alert("Warning! A problem occurred during saving the data. Try again later!");
   	} else {
 		//update list of annotated tokens		
-		if (entities.length > 0) {
-			window.open("errors_output.php?id=<?php echo $id;?>&sentidx=<?php echo $sentidx; ?>","_self");			
-		} else {
-			$("#errors"+OUTPUTID).html("<table cellspacing=4><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+OUTPUTID+".0' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,0);' onClick=\"check('<?php echo $userid;?>','"+OUTPUTID+"',<?php echo $userid;?>,0,0,2);\" nowrap>No errors</td></tr><tr><td style='background: #ccc; border: solid #444 1px; font-size:13px' id='check."+OUTPUTID+".1' align=center onmouseover='fadeIn(this);'  onmouseout='fadeOut(this,1);' onClick=\"check('<?php echo $userid;?>','"+OUTPUTID+"',<?php echo $userid;?>,1,1,2);\">Too many errors</td><tr></table>");
-		}		
+			$("#output"+OUTPUTID).html(response);
+			$.ajax({
+  				url: 'errors_type.php',
+ 				type: 'GET',
+  				data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>",
+  				async: false,
+  				cache:false,
+  				crossDomain: true,
+  				success: function(response) {
+  					$("#errors"+OUTPUTID).html(response);
+				}
+			});
+			//window.open("errors_output.php?id=<?php echo $id;?>&sentidx=<?php echo $sentidx; ?>","_self");			
+				
 	}
   	
   },
@@ -634,6 +487,48 @@ $(document).ready(function() {
 	});
 });	
 
+
+/*(function($){
+    var methods = {
+            disable: function() {
+              return $(this)
+                .attr('unselectable', 'on')
+                .attr('disabled','disabled')
+                .css({
+                   '-user-select': 'none',
+                   '-webkit-user-select': 'none',
+                   '-khtml-user-select': 'none',
+                   '-moz-user-select': 'none',
+                   '-o-user-select': 'none'
+                })
+                .each(function() { 
+                   this.onselectstart = function() { return false; };
+                });
+            }
+        };
+    
+    $.fn.textSelect = function( method ) {
+        // Method calling logic
+        if ( methods[method] ) {
+          return methods[ method ].apply( this, Array.prototype.slice.call( arguments, 1 ));
+        } else {
+          $.error( 'Method ' +  method + ' does not exist on jQuery.textSelect' );
+        }    
+    }
+
+        
+})(jQuery);
+$('.unselect').textSelect('disable');
+*/
+
+//if IE4+
+//document.onselectstart=new Function ("return false")
+
+//if NS6
+//if (window.sidebar){
+//document.onmousedown=disableselect
+//document.onclick=reEnable
+//}
 </script>
 <br></br>
 

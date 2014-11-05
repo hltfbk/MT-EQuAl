@@ -1575,25 +1575,35 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 		$hashTokenidErrortype = array();
 		if (count($tokens) > 0) {
 			for ($i=0; $i<count($tokens); $i++) {
-				$hashTokenidErrortype{$i} = array();
-				$hashTokenidErrortype{$i."-".($i+1)} = array();
+				#print "$i. ".$tokens[$i]."<br>";
+				$hashTokenidErrortype{($i+1)} = array();
+				$hashTokenidErrortype{($i+1)."-".($i+2)} = array();
 			}
 			$level=0;
 			while (list ($errID, $errARRAY) = each($hashErrors)) {
-				$tokids = preg_split("/,/", $errARRAY[0]);
+			  if (!empty($errARRAY[0])) {
+			  	$tokids = preg_split("/,/", $errARRAY[0]);
 				//check the max number of lenght of the current segment of tokens
 				$loop = 0;
 				while (count($tokids) > 0) {
 					$catched_tids = array();
 					foreach ($tokids as $tids) {
+						if (trim($tids) == "") {
+							continue;
+						}
 						$span = preg_split("/ /", $tids);
 						if ($level > 0) {
-							for ($l=0; $l < count($hashTokenidErrortype{0}); $l++) {
+							for ($l=0; $l < count($hashTokenidErrortype{1}); $l++) {
 								$freePos=0;
 								foreach ($span as $tid) {
-									if ($hashTokenidErrortype{$tid}[$l]=="FFF") {
+									if (!isset($hashTokenidErrortype{$tid})) {
+										array_push($catched_tids, $tids);
+										break;
+									}
+									if (isset($hashTokenidErrortype{$tid}[$l]) && $hashTokenidErrortype{$tid}[$l]=="FFF") {
 										$freePos++;
 									}	
+								
 								}
 								if ($freePos == count($span)) {
 									foreach ($span as $tid) {
@@ -1606,17 +1616,20 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 							if (in_array($tids, $catched_tids)) {
 								continue;
 							}
+							
 						}
 						$freePos=0;
 						foreach ($span as $tid) {
 							#check if all token position are free
-							if (count($hashTokenidErrortype{$tid}) == $loop) {
+							if (isset($hashTokenidErrortype{$tid}) && count($hashTokenidErrortype{$tid}) == $loop) {
 								$freePos++;
 							}
 						}
 						if ($freePos == count($span)) {
 							foreach ($span as $tid) {
-								array_push($hashTokenidErrortype{$tid},$colorRange{$errID}[1]);
+								if (isset($hashTokenidErrortype{$tid})) {
+									array_push($hashTokenidErrortype{$tid},$colorRange{$errID}[1]);
+								}
 							}
 							array_push($catched_tids, $tids);
 						}
@@ -1630,6 +1643,7 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 						}
 					}
 					$loop++;
+				  }
 				}
 				$level++;
 			}
@@ -1640,30 +1654,32 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 			if ($token == "__BR__") {
 				$text .= "<br>";
 			} else {
-				$text .= "<div id=$idx.$id $tokenbg>$token";
+				$text .= "<div id='$idx.$id' $tokenbg>$token";
 				if (isset($hashTokenidErrortype{$id})) {
 					foreach ($hashTokenidErrortype{$id} as $col) {
-						$text .= "<div style='background: #". $col .";border-bottom: 1px solid ";
+						$text .= "<nobr><div style='font-size: 1px;
+  background: #". $col .";border-bottom: 1px solid ";
 						if ($col != "FFF") {
 							$text .= "#888;";
 						} else {
 							$text .= "#FFF;";
 						}
-						$text .= "height: 4px'> </div>";
+						$text .= "height: 4px'>&nbsp;</div></nobr>";
 					}
 				}
 				$text .= "</div>";
 				$spaceId=$id."-".($id+1);
-				$text .= "<div id=$idx.".$spaceId." $spacebg>&nbsp;";
+				$text .= "<div id='$idx.".$spaceId."' $spacebg>&nbsp;";
 				if (isset($hashTokenidErrortype{$spaceId})) {
 					foreach ($hashTokenidErrortype{$spaceId} as $col) {
-						$text .= "<div style='background: #". $col ."; border-bottom: 1px solid ";
+						$text .= "<nobr><div style='font-size: 1px;
+  background: #". $col ."; border-bottom: 1px solid ";
 						if ($col != "FFF") {
 							$text .= "#888;";
 						} else {
 							$text .= "#FFF;";
 						}
-						$text .= "height: 4px'> </div>";
+						$text .= "height: 4px'>&nbsp;</div></nobr>";
 					}
 				}
 				$text .= "</div>";
