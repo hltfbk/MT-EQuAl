@@ -142,7 +142,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
       							for ($i = 0; $i < $zip1->numFiles; $i++) {
 			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
 			    					if (file_exists($f) && is_file($f)) {
-    									$errmsg .= addFileData($taskid,$filetype,$tokenization,$f, basename($f));
+    									$errmsg .= addFileData($taskid,$filetype,$tokenization,$f, $zip1->getNameIndex($i));
       								}
       							}
       						} else {
@@ -151,7 +151,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
     								$itype=basename(dirname($f));
     								if ($itype == "source") {
-    									$errmsg .= addFileData($taskid,"source",$tokenization,$f, basename($f));
+    									$errmsg .= addFileData($taskid,"source",$tokenization,$f, $zip1->getNameIndex($i));
       								}
       							}
       							#then the rest of the files
@@ -159,7 +159,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 			    					$f = dirname($ftmp)."/".$zip1->getNameIndex($i);
     								$itype=basename(dirname($f));
     								if ($itype != "source" && in_array($itype, $sentenceTypes)) {
-    									$errmsg .= addFileData($taskid,$itype,$tokenization,$f, basename($f));
+    									$errmsg .= addFileData($taskid,$itype,$tokenization,$f, $zip1->getNameIndex($i));
       								}
       							}
       						}			

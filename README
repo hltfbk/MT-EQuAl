@@ -103,3 +103,8 @@ Each file must contain three columns per line, separated by a tabular space:
 - the sentence (using UTF-8 encoding).
 
 See some examples in the directory data/input/.
+
+ACKNOWLEDGMENTS
+---------------
+This work has been partially supported by the EC-funded project MateCat (ICT-2011.4.2-287688 http://www.matecat.com/).
+

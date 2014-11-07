@@ -164,6 +164,7 @@ if ($mysession["taskid"] > 0 && isset($mysession["userid"]) && $mysession["statu
 	print "<div class=index><center>";
 	if (empty($mysession["status"])) {
             print "<h3>This is an end user interface for the evaluation of Machine Translation systems</h3>\n<p>Sign in, please!</p>";
+            print "<div style='position:absolute; bottom: 50px; width: 100%'><a href='http://www.matecat.com/'><img width=300 valign=bottom src='img/matecat-logo.png' align=top title='MateCat project' border=0></a><br>\nThe work was partially supported by the MateCat project funded by the European Union.</div>";
 	} else if (empty($mysession["tasknow"])) {
 		if ($mysession["status"] == "admin" || $mysession["status"] == "advisor") {
 			print "<br>Welcome " .$mysession["username"]."!";

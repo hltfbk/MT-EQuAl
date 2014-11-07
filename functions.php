@@ -26,9 +26,11 @@ function getUserStats($user_id, $user_status) {
 		$adminTaskIDs = array_keys($admintasks);
 		if ($user_status == "advisor") {
 			$query = "select id,username,name,activated,status,refuser from user RIGHT JOIN (select team from user where id=$user_id) as b on user.team=b.team order by status,username;";
+		} else if ($user_status == "admin") {
+			$query = "select id,username,name,activated,status,refuser from user RIGHT JOIN (select distinct user_id from usertask left join task on task.id=usertask.task_id where task.owner=$user_id) AS b ON b.user_id=user.id WHERE id IS NOT NULL order by status,username;";
 		} else {
-			$query = "select id,username,name,activated,status,refuser from user LEFT JOIN (select distinct user_id from usertask left join task on task.id=usertask.task_id where task.owner=$user_id) AS b ON b.user_id=user.id order by status,username;";
-		} 
+			$query = "select id,username,name,activated,status,refuser from user order by status,username;";
+		}
 		#$query = "select id,username,name,count(*),activated,status,refuser from user left join annotation on annotation.user_id=user.id group by id order by status,username;";
 		$result = safe_query($query);	
 		if (mysql_num_rows($result) > 0) {
@@ -751,33 +753,38 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
 	}	 
 	$handle = fopen($filepath, "r");
 	if ($handle) {
+		$tasktype = getTaskType($taskid);
 		$linenum = 0;
 		$fileType ="csv";
-		$fileName = "";
+		$fileName = $filename;
 		$txpText="";
     	while (($line = fgets($handle)) !== false) {
     		$linenum++;
  	   		if (preg_match("/^# FILE:/",$line)) {
     			$fileType="txp";
-    			$fileName=trim(preg_replace("/^# FILE:/","",$line));
+    			#$fileName=trim(preg_replace("/^# FILE:/","",$line));
     		}
-    		if ($fileType == "txp") {
-    			if (preg_match("/^# /",$line)) {
-    				continue;
-    			} else {
-    				if (trim($line) == "" && strlen($txpText) >0) {
-    					$txpText .= "\n";
+    		if ($tasktype == "docann") {
+    			if ($fileType == "txp") {
+    				if (preg_match("/^# /",$line)) {
+    					continue;
     				} else {
-    					$items = explode("\t", trim(htmlentities2utf8($line)));
-    					$txpText .= $items[0] ." ";
+    					if (trim($line) == "" && strlen($txpText) >0) {
+    						$txpText .= "\n";
+    					} else {
+    						$items = explode("\t", trim(htmlentities2utf8($line)));
+    						$txpText .= $items[0] ." ";
+    					}
     				}
+    			} else {
+    				$txpText .= htmlentities2utf8($line);
     			}
     		} else {
     			$query = "";
        			#print $line ."<br><pre>".htmlentities2utf8($line)."</pre><br>----<br>";
     			$items = explode("\t", htmlentities2utf8($line));
     			if (count($items) < 3 || empty($items[1])) {
-    				$errmsg = "<small>WARNING! Parse error on file $filename: language is missing [line: $linenum].</small><br>\n";
+    				$errmsg = "<small>WARNING! Parse error on file $filename: language is missing [line: $linenum]</small><br>\n";
     				break;
     			}
     			if ($type == "source") {
@@ -799,10 +806,15 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
 			}
     	}
     	fclose($handle);
-    	if ($fileType == "txp") {
-    		$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('$fileName','".$type."','',$taskid,'".trim(str_replace("'","\\'",$txpText)) ."', now(),1);";
+    	
+    	if (strlen($txpText) > 0) {
+    		if (strlen(trim($fileName)) > 0) {
+    			$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('$fileName','".$type."','',$taskid,'".trim(str_replace("'","\\'",$txpText)) ."', now(),1);";
     		#print $query;
-    		$insert += safe_query($query);
+    			$insert += safe_query($query);
+    		} else {
+    			$errmsg = "WARNING! The filename is missing.";
+    		}
     	}
     		
     	
@@ -848,7 +860,7 @@ function deleteAnnotations ($taskid,$userid) {
 }
 
 function deleteSentences($taskid,$type) {	
-    #delete all annotations
+	#delete all annotations
     $query = "DELETE FROM annotation where output_id IN (
     SELECT num FROM sentence WHERE sentence.task_id=$taskid AND type='$type');";
 	#delete all sentences
@@ -1668,21 +1680,23 @@ function showSentence ($lang, $text, $type = "", $tokenize = 0, $idx = "", $hash
 					}
 				}
 				$text .= "</div>";
-				$spaceId=$id."-".($id+1);
-				$text .= "<div id='$idx.".$spaceId."' $spacebg>&nbsp;";
-				if (isset($hashTokenidErrortype{$spaceId})) {
-					foreach ($hashTokenidErrortype{$spaceId} as $col) {
-						$text .= "<nobr><div style='font-size: 1px;
+				if ($tokenize != 3) {
+					$spaceId=$id."-".($id+1);
+					$text .= "<div id='$idx.".$spaceId."' $spacebg>&nbsp;";
+					if (isset($hashTokenidErrortype{$spaceId})) {
+						foreach ($hashTokenidErrortype{$spaceId} as $col) {
+							$text .= "<nobr><div style='font-size: 1px;
   background: #". $col ."; border-bottom: 1px solid ";
-						if ($col != "FFF") {
-							$text .= "#888;";
-						} else {
-							$text .= "#FFF;";
+							if ($col != "FFF") {
+								$text .= "#888;";
+							} else {
+								$text .= "#FFF;";
+							}
+							$text .= "height: 4px'>&nbsp;</div></nobr>";
 						}
-						$text .= "height: 4px'>&nbsp;</div></nobr>";
 					}
+					$text .= "</div>";
 				}
-				$text .= "</div>";
 				$id++;
 			}
 		}

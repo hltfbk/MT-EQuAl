@@ -368,18 +368,18 @@ function saveAnnotationRanges(errid) {
  //if (send) { // && trim(ranges) != "") { 	
  
  $.ajax({
-  url: 'update.php',
-  type: 'GET',
-  data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&tokenids="+ranges+"&taskid=<?php echo $taskid;?>&words="+entities,
-  async: false,
-  cache:false,
-  crossDomain: true,
-  success: function(response) {
-  	if (response == "error") {
-  		//$("#log").html("");
-  		alert("Warning! A problem occurred during saving the data. Try again later!");
-  	} else {
-		//update list of annotated tokens		
+	url: 'update.php',
+	type: 'GET',
+	data: "id=<?php echo $id;?>&targetid="+OUTPUTID+"&userid=<?php echo $userid;?>&check="+ERRORID+"&tokenids="+ranges+"&taskid=<?php echo $taskid;?>&words="+entities,
+	async: false,
+	cache:false,
+	crossDomain: true,
+	success: function(response) {
+		if (response == "error") {
+  			//$("#log").html("");
+			alert("Warning! A problem occurred during saving the data. Try again later!");
+		} else {
+			//update list of annotated tokens		
 			$("#output"+OUTPUTID).html(response);
 			$.ajax({
   				url: 'errors_type.php',
@@ -393,11 +393,9 @@ function saveAnnotationRanges(errid) {
 				}
 			});
 			//window.open("errors_output.php?id=<?php echo $id;?>&sentidx=<?php echo $sentidx; ?>","_self");			
-				
-	}
-  	
-  },
-  error: function(response, xhr,err ) {
+		}
+ 	},
+  	error: function(response, xhr,err ) {
         //alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
         //alert(ERRORID);
         switch(xhr.status) {
@@ -413,7 +411,7 @@ function saveAnnotationRanges(errid) {
     		}   
     	setTimeout(function(){$("#log").html('')}, 3000);		
     }
-  });
+});
   
  
 ERRORID = "";

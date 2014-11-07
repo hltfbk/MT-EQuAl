@@ -51,13 +51,22 @@ if (isset($action) && $action == "reset") {
 	}
 	$checked=0;
 	$hash_target = getSystemSentences($id,$taskid);
-	while (list ($sentence_id, $sentence_item) = each($hash_target)) {
-		$errors = getErrors($id,$sentence_id,$userid);
-		if (count($errors) > 0) {
-			$checked++;
+	if (count($hash_target) > 0) {
+		while (list ($sentence_id, $sentence_item) = each($hash_target)) {
+			$errors = getErrors($id,$sentence_id,$userid);
+			if (count($errors) > 0) {
+				$checked++;
+			}
+			if ($targetid == $sentence_id) {
+				print showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $targetid, $errors, $mysession["taskranges"]);
+			}
 		}
-		if ($targetid == $sentence_id) {
-			print showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $targetid, $errors, $mysession["taskranges"]);
+	} else {
+		$hash_target = getSentence($id, $taskid);
+		while (list ($type, $sentence_item) = each($hash_target)) {
+			$errors = getErrors($id,$id,$userid);
+		
+			print showSentence ($id, trim(preg_replace("/\n/"," __BR__ ",$sentence_item[1])), "output", $sentence_item[2], $id, $errors, $mysession["taskranges"]);
 		}
 	} 
 	if ($checked != count($hash_target)) {
