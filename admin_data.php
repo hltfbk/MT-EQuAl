@@ -187,7 +187,7 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 }
 
 //show stored data
-	
+if (count($tasks) > 0) {	
 	print "<table border=1 cellspacing=0 cellpadding=2><tr bgcolor=#ccc><th>Task name</th>";
 	foreach ($sentenceTypes as $stype) { 
 		print "<th>$stype</th>";			
@@ -212,7 +212,9 @@ if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysessi
 		print "</tr>\n";
     }
 	print "</table>";
-
+} else {
+	print "<br><i>No task has been found!</i>";
+}
 //create upload form
 if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysession["status"] == "root")) {
  ?>

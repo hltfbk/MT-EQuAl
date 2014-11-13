@@ -275,7 +275,7 @@ if ($taskid > 0 && isset($id) && isset($userid)) {
 				}
 				print "<div style='background: #".$ranges[$errID][1]."; white-space: nowrap;'> ";
 				if ($monitoring==0) {	
-					print "<button id=reset.$i.$errID onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,$sentidx);\">reset</button>";
+					print "<button id=reset.$i.$errID onclick=\"javascript:reset('$id','$sentence_id',$taskid,$userid,$errID,".count($ranges).",$sentidx,".count($hash_target).");\">reset</button>";
 				}
 				print "&nbsp;<i><small><b>".$ranges[$errID][0].":</b></small></i></div>$annotations";
 			}

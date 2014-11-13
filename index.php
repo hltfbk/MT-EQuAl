@@ -138,18 +138,29 @@ if ($mysession["taskid"] > 0 && isset($mysession["userid"]) && $mysession["statu
 	}
 	$done_sentences = getDoneSentences($mysession["taskid"], $mysession["userid"]);
 	#$error_sentences = getErrorSentences($mysession["taskid"]);
-	print "<div class='error'>&nbsp;&nbsp; <b>".count($done_sentences) . "</b>/<b>" . count($source_sentences) ."</b> <small>evaluated items</div><div class=index><br>";
+	print "<div class='error'>&nbsp;&nbsp; <b>".count($done_sentences) . "</b>/<b>" . count($source_sentences) ."</b> <small>evaluated items</small></div><div class=index><br>";
 
 	$i=1;
 	while (list($k,$arr) = each($source_sentences)) {
 		$done = "";
-		$countAnnotations = countSentenceAnnotations($k,$mysession["userid"]);
-		if ($countAnnotations > 0) {
-			$done = "<div style='border: solid #FF6666 2px; left:50px; padding: 1px; display: inline'><i>".$countAnnotations."/".$mysession["tasksysnum"]."</i></div>";
-			if (in_array($k, $done_sentences))
-				$done ="<img src='img/done.png' width=16>";
+		if (in_array($k, $done_sentences)) {
+			$done ="<img src='img/done.png' width=16>";
 			#if (in_array($k, $error_sentences))
 			#	$done.="<img src='img/check_error.png' width=16>";
+		} else {	
+			if ($mysession["tasktype"] == "docann") {
+				$hashe = getErrors($k,$k,$mysession["userid"]);
+				if (count($hashe) > 0) {
+					$countAnnotations = countAnnotations($k,$k,$mysession["userid"]);
+				
+					$done = "<div style='border: solid #FF6666 2px; left:50px; padding: 1px; display: inline' title='$countAnnotations annotations for ".count($hashe)." categories'><i>$countAnnotations/".count($hashe)."</i></div>";
+				}
+			} else {
+				$countAnnotations = countAnnotatedSentences($k,$mysession["userid"]);
+				if ($countAnnotations > 0) {
+					$done = "<div style='border: solid #FF6666 2px; left:50px; padding: 1px; display: inline'><i>".$countAnnotations."/".$mysession["tasksysnum"]."</i></div>";
+				}
+			}
 		}
 		print "<a name='$k'><div class=row><div class=sentindex>$done <strong>$i.</strong> </div>";
 		if ($mysession["tasktype"] == "docann") {

@@ -127,6 +127,26 @@ if ($mysession["taskistr"] != "") {
 if (isset($userid) && $userid != $mysession['userid'] && ($mysession["status"] == "root" || $mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
 	print "<script>\n  setTimeout(\"window.open('quality.php?id=$id&userid=$userid&taskid=$taskid','_self')\", 5000);\n</script>\n";
 }
-?>			
+?>		
+<script>
+$(document).ready(function() {
+  	$('.nav-toggle').click(function() {
+		//get collapse content selector
+		var collapse_content_selector = $(this).attr('href');					
+		//make the collapse content to be shown or hide
+		var toggle_switch = $(this);
+		$(collapse_content_selector).toggle(function(){
+			if ($(this).css('display')=='none'){
+				//change the button label to be 'Show'
+				toggle_switch.html('read more');
+				
+			}else{
+				//change the button label to be 'Hide'
+				toggle_switch.html('close');
+			}
+		});
+	});
+});	
+</script>		
 </body>
 </html>

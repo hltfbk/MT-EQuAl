@@ -22,7 +22,7 @@ var WHITE = "";
 var COLOR = "red";
 
 $('div').mousedown( function () {
-	if (this.id != "" && this.id.indexOf("output") != 0) {
+	if (this.id != "" && this.id.indexOf(".") > 0) {
 		down = this.id;
 	}
 	//$("#log").html(this.id);
@@ -36,10 +36,7 @@ $('div').mousedown( function () {
 
 $('div').mouseup( function (event) {
 	if (this.id != "") {
-		if (this.id.indexOf("error") == 0 || this.id.indexOf("comm") == 0 || this.id.indexOf("output") == 0) {
-			//return;
-		} else {
-		
+	  if (this.id.indexOf(".") > 0) {
 		var up = this.id;
 		//$("#log").html("SET " +down + " " +up);
 		if (down != null && up != null) {
@@ -69,7 +66,7 @@ $('div').mouseup( function (event) {
     		down = null;
     		up = null;
 		}
-		}
+	  }
     }
 });
 

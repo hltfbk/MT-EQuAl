@@ -111,7 +111,7 @@ function check(id,target_id,user_id,val,checkid,totcheck,outid,totout) {
     }
 }
 
-function reset(id,targetid,taskid,userid,errid,outid) {
+function reset(id,targetid,taskid,userid,errid,totcheck,outid,totout) {
 	if (confirm("Do you really want to cancel all the annotations in this error category?")) {
 		$.ajax({
   			url: 'update.php',
@@ -121,7 +121,7 @@ function reset(id,targetid,taskid,userid,errid,outid) {
   			cache:false,
 			crossDomain: true,
 			success: function(response) {
-  				//alert(id+","+target_id+","+check);
+  				//alert(id+","+targetid+", ("+response+")");
   				$("#output"+targetid).html(response);
 				$.ajax({
   					url: 'errors_type.php',
@@ -144,33 +144,30 @@ function reset(id,targetid,taskid,userid,errid,outid) {
 				}
 			}
   		});
+  		//controllo se attivare bottone done se c'e` almeno un assegnamento per ogni sistema
+ 	var checked = 0;
+ 	for(var o=0; o<totout; o++) {	
+   		for(var c=0; c<totcheck; c++) {
+   			radioEl = document.getElementById("check."+o+"."+c);
+   			if (radioEl != null && radioEl.style.border == BUTTONSELCOLOR) {
+   				checked++;
+   				break;
+   			} else {
+   				resetEl = document.getElementById("reset."+o+"."+c);
+   				if (resetEl != null) {
+   					checked++;
+   					break;
+   				}
+   			}
+   		}		
+ 	}
+ 	
+ 	if (checked == totout) {
+		activateDone(0);
+  	} else {
+  		notDoneYet();
+    }
 	}	
-}
-
-function resetAnn(id,targetid,taskid,userid,errid,sentidx) {
-  //alert(id+","+targetid+","+errid);
-  if (confirm("Do you really want to cancel all the annotations about this category?")) {
-	$.ajax({
-  		url: 'update.php',
-  		type: 'GET',
-      	data: "id="+id+"&targetid="+targetid+"&userid="+userid+"&check="+errid+"&action=reset",
-  		async: false,
-  		cache:false,
-  		crossDomain: true,
-  		success: function(response) {
-  			//alert(id+","+target_id+","+check);
-  			window.open("docann.php?id="+id+"&taskid="+taskid+"&sentidx="+sentidx,"_top");
-      
-  		},
-  		error: function(response, xhr,err ) {
-        	//alert(err+"\nreadyState: "+xhr.readyState+"\nstatus: "+xhr.status+"\nresponseText: "+xhr.responseText);
-        	switch(xhr.status) {
-				case 200: 
-					alert("WARNING! Data has not been saved correctly");
-			}
-		}
-  	});
-  }	
 }
 
 function save_comment(id, userid, comment) {
@@ -338,4 +335,6 @@ function isSelected(id) {
     
     return 0;
 }	
+
+
 	

@@ -71,13 +71,9 @@ while (list ($errID, $errARRAY) = each($errors)) {
 		}
 		print "<div style='background: #".$ranges[$errID][1]."; white-space: nowrap;'> ";
 		if ($monitoring==0) {	
-			print "<button id=reset.$i.$errID onclick=\"javascript:reset('$id','$targetid',$taskid,$userid,$errID,$i);\">reset</button>";
+			print "<button id=reset.$i.$errID onclick=\"javascript:reset('$id','$targetid',$taskid,$userid,$errID,".count($ranges).",$i,".count($hash_target).");\">reset</button>";
 		}
 		print "&nbsp;<i><small><b>".$ranges[$errID][0].":</b></small></i></div>$annotations";
 	}
 }	  
-
-if ($checkid > 0) {
-	print "<script>notDoneYet();</script>";
-}
 ?>

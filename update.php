@@ -29,13 +29,21 @@ if (isset($action) && $action == "reset") {
 		<script type="text/javascript" src="js/errors.js"></script>
 <?php	
 	resetErrors($id,$targetid,$userid,$check);
-	$hash_target = getSystemSentences($id,$taskid);
-	if (isset($hash_target{$targetid})) {
-		$sentence_item = $hash_target{$targetid};
-		$errors = getErrors($id,$targetid,$userid);
+	$tasktype = getTaskType($taskid);
+	$errors = getErrors($id,$targetid,$userid);
+	if ($tasktype == "docann") {
+		$sentence_hash = getSentence($targetid, $taskid);
+		if (count($sentence_hash) > 0) {
+			print showSentence ($id, trim(preg_replace("/\n/"," __BR__ ",trim($sentence_hash["source"][1]))), "output", $sentence_hash["source"][2], $targetid, $errors, $mysession["taskranges"]);
+		}
+    } else {			
+		$hash_target = getSystemSentences($id,$taskid);
+		if (isset($hash_target{$targetid})) {
+			$sentence_item = $hash_target{$targetid};
+			print showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $targetid, $errors, $mysession["taskranges"]);
+		}
+	}
 	
-		print showSentence ($sentence_item[0], $sentence_item[1], "output", $sentence_item[2], $targetid, $errors, $mysession["taskranges"]);
-	} 
 } else if (isset($completed)) {
 	print saveDone($id,$userid,$completed);
 } else if (isset($alignids)) {
@@ -65,7 +73,9 @@ if (isset($action) && $action == "reset") {
 		$hash_target = getSentence($id, $taskid);
 		while (list ($type, $sentence_item) = each($hash_target)) {
 			$errors = getErrors($id,$id,$userid);
-		
+			if (count($errors) > 0) {
+				$checked++;
+			}
 			print showSentence ($id, trim(preg_replace("/\n/"," __BR__ ",$sentence_item[1])), "output", $sentence_item[2], $id, $errors, $mysession["taskranges"]);
 		}
 	} 

@@ -284,6 +284,29 @@ function getErrors($sentence_num,$output_id,$user_id) {
 	return $hash_error;
 }
 
+#count annotations for a target
+function countAnnotations($sentence_num,$output_id,$user_id) {
+	$query = "SELECT LENGTH(evalids) - LENGTH(REPLACE(evalids, ',', ''))+1 FROM annotation WHERE sentence_num=$sentence_num AND output_id=$output_id AND user_id=$user_id order by eval;";
+	$result = safe_query($query);	
+	if (mysql_num_rows($result) > 0) {
+		$sum=0;
+		while ($row = mysql_fetch_row($result)) {
+			$sum += $row[0];
+		} 
+		return $sum;
+	}
+	return 0;
+}
+
+#count the annotated targets
+function countAnnotatedSentences($sentence_num,$user_id = null) {
+	$query = "SELECT distinct output_id FROM annotation WHERE sentence_num='$sentence_num' AND eval >= 0";
+	if ($user_id != null) {
+		$query .= " AND user_id=$user_id;";
+	}
+	return mysql_num_rows(safe_query($query));
+}
+	
 function getUsedValues ($taskid) {
 	$values = array();
 	$query = "SELECT DISTINCT eval FROM annotation LEFT JOIN sentence ON annotation.sentence_num=sentence.num WHERE task_id=$taskid";
@@ -302,15 +325,7 @@ function copyAnnotations ($curruserid, $taskid, $fromuserid) {
 	mysql_query($query) or print ("ERROR! Records copying failed. (" . mysql_error() .")");	
 	return mysql_affected_rows();
 }
-
-function countSentenceAnnotations($sentence_num,$user_id = null) {
-	$query = "SELECT distinct output_id FROM annotation WHERE sentence_num='$sentence_num' AND eval >= 0";
-	if ($user_id != null) {
-		$query .= " AND user_id=$user_id;";
-	}
-	return mysql_num_rows(safe_query($query));
-}
-		
+	
 function getAnnotatedTasks ($userid) { 
 	$hash = array();
 	#$query="select task_id,count(*) from annotation,sentence where annotation.sentence_num=sentence.num and user_id=$userid group by task_id order by task_id";
@@ -318,7 +333,9 @@ function getAnnotatedTasks ($userid) {
 	$result = safe_query($query);	
 	if (mysql_num_rows($result) > 0) {
 		while ($row = mysql_fetch_row($result)) {
-			$hash[$row[0]] = $row[1];
+			if (!empty($row[0])) {
+				$hash[$row[0]] = $row[1];
+			}
 		}
 	}    
 	return $hash;
@@ -634,10 +651,15 @@ function countTaskSentences ($taskid) {
 #get the counter about sentence types of a task
 function countTaskSystem ($taskid) {
 	if (!empty($taskid)) {
-		$query="SELECT distinct type FROM sentence WHERE task_id=$taskid AND type != 'source' AND type != 'reference';";
-		$result = safe_query($query);	
-		return mysql_num_rows($result);
+		if (getTaskType($taskid) == "docann") {
+			return 1;
+		} else {
+			$query="SELECT distinct type FROM sentence WHERE task_id=$taskid AND type != 'source' AND type != 'reference';";
+			$result = safe_query($query);	
+			return mysql_num_rows($result);
+		}
 	}
+	return 0;
 }
 
 #get the list of sentence types
@@ -748,9 +770,10 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
    	$mappingsID2NUM = getSourceSentenceIdMapping($taskid);
 #	print "TASK: $taskid, TYPE: $type, mappingsID2NUM: ". join(",",$mappingsID2NUM). " ($tokenization,$filepath,$filename)<br>";
 	#skip the file that start with dot
-	if (preg_match("/^\..+$/",$filename)) {
+	if (preg_match("/^\..+$/",basename($filename))) {
 		return $errmsg;
 	}	 
+	
 	$handle = fopen($filepath, "r");
 	if ($handle) {
 		$tasktype = getTaskType($taskid);
@@ -758,11 +781,20 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
 		$fileType ="csv";
 		$fileName = $filename;
 		$txpText="";
-    	while (($line = fgets($handle)) !== false) {
+		$tokenstartId = -1;
+		$currentPosition=0;
+		while (($line = fgets($handle)) !== false) {
     		$linenum++;
  	   		if (preg_match("/^# FILE:/",$line)) {
     			$fileType="txp";
     			#$fileName=trim(preg_replace("/^# FILE:/","",$line));
+    		} else if (preg_match("/^# FIELDS:/",$line)) {
+    			$fields = preg_split("/\t/",preg_replace("/^# FIELDS:\s*/","", $line));
+    			for ($i=0; $i< count($fields); $i++) {
+    				if ($fields[$i] == "tokenstart") {
+    					$tokenstartId=$i;
+    				}
+    			}
     		}
     		if ($tasktype == "docann") {
     			if ($fileType == "txp") {
@@ -771,9 +803,20 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
     				} else {
     					if (trim($line) == "" && strlen($txpText) >0) {
     						$txpText .= "\n";
+    						$currentPosition++;
     					} else {
     						$items = explode("\t", trim(htmlentities2utf8($line)));
-    						$txpText .= $items[0] ." ";
+    						if ($tokenstartId != -1) {
+    							for ($i=$currentPosition;$i<intval($items[$tokenstartId]); $i++) {
+    								$txpText .= " ";
+    							}
+    						} 
+    						$txpText .= $items[0];
+    						if ($tokenstartId != -1) {
+    							$currentPosition = intval($items[$tokenstartId]) + strlen($items[0]);
+    						} else {
+    							$txpText .= " ";
+    						} 	
     					}
     				}
     			} else {
@@ -788,13 +831,13 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
     				break;
     			}
     			if ($type == "source") {
-       				$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". str_replace("'","\\'",$items[2]) ."', now(), $tokenization);";
+       				$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". addslashes($items[2]) ."', now(), $tokenization);";
 				} else {   			
        				if (!empty($mappingsID2NUM[$items[0]])) {
        					if ($type == "reference") {
-       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),0);";
+       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .addslashes($items[2]) ."', now(),0);";
        					} else {
-       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .str_replace("'","\\'",$items[2]) ."', now(),$tokenization);";
+       						$query = "INSERT INTO sentence (id, type, lang, task_id, linkto, text, lasttime, tokenization) VALUES ('".$items[0] ."','".$type."','" .$items[1]."',$taskid,'". $mappingsID2NUM[$items[0]] ."','" .addslashes($items[2]) ."', now(),$tokenization);";
        					}
        				} else {
        					$errmsg = "WARNING! The source of sentence ".$items[0]." is missing. Add the source sentence aligned to this output sentence.<br>";
@@ -806,10 +849,10 @@ function addFileData ($taskid,$type,$tokenization,$filepath,$filename) {
 			}
     	}
     	fclose($handle);
-    	
-    	if (strlen($txpText) > 0) {
+		
+		if (strlen(trim($txpText)) > 0) {
     		if (strlen(trim($fileName)) > 0) {
-    			$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('$fileName','".$type."','',$taskid,'".trim(str_replace("'","\\'",$txpText)) ."', now(),1);";
+    			$query = "INSERT INTO sentence (id, type, lang, task_id, text, lasttime, tokenization) VALUES ('$fileName','".$type."','',$taskid,'".trim(addslashes($txpText)) ."', now(),1);";
     		#print $query;
     			$insert += safe_query($query);
     		} else {
@@ -905,8 +948,9 @@ function getDBInconsistency($userid, $tasks) {
 	
 	//check if all evaluated sentence has full annotated output
 	foreach ($tasks as $taskid) {
-		$tasksyscount=countTaskSystem ($taskid);
-		if ($tasksyscount > 0) {
+		$tasksyscount=countTaskSystem($taskid);
+			
+		#if ($tasksyscount > 0) {
 			$query="SELECT count(*) FROM done LEFT JOIN sentence ON done.sentence_num=sentence.num WHERE user_id=$userid AND completed='Y' AND task_id=$taskid;";
 			$result = safe_query($query);
 			$row = mysql_fetch_row($result);
@@ -915,7 +959,6 @@ function getDBInconsistency($userid, $tasks) {
 			$query = "SELECT sentence_num,output_id,count(*) AS count FROM annotation LEFT JOIN sentence ON sentence.num=annotation.sentence_num where task_id=$taskid AND user_id=$userid group by sentence_num,output_id order by sentence_num;";
 			$result = safe_query($query);
 			$hash = array();
-			
 			if (mysql_num_rows($result) > 0) {
 				while ($row = mysql_fetch_row($result)) {
 					if (!in_array($row[1], $array_sentencenum)) {
@@ -931,6 +974,7 @@ function getDBInconsistency($userid, $tasks) {
 						$hash_error[$sentence_num] = array($taskid,"");
 					}
 				}
+					
 				if ($num_done != count($hash)) {
 					$msg = "";
 					if ($num_done == 1) {
@@ -942,7 +986,7 @@ function getDBInconsistency($userid, $tasks) {
 					$hash_error["DONE!".$taskid] = array($taskid, $msg);
 				}
 			}
-		}
+		#}
 	}
 	
 	$query = "select distinct sentence_num FROM annotation where user_id=$userid";
