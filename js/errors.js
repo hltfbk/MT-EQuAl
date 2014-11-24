@@ -21,20 +21,22 @@ var WHITE = "";
 //var COLOR = WHITE;
 var COLOR = "red";
 
+
 $('div').mousedown( function () {
 	if (this.id != "" && this.id.indexOf(".") > 0) {
 		down = this.id;
 	}
-	//$("#log").html(this.id);
 });
-
-/*$('div').mouseover( function () {
-	if (this.id != "") {
-		$("#log").html(this.id);
-	}
-});*/
-
+    
 $('div').mouseup( function (event) {
+	if (event.which==3 || (event.ctrlKey && event.which==1)) {
+		if (OUTPUTID != null && isSelected(OUTPUTID) == 1) {
+			moveObject('errortypes',event); 
+			$("#errortypes").show(100);
+			return false;
+		}
+	}
+	
 	if (this.id != "") {
 	  if (this.id.indexOf(".") > 0) {
 		var up = this.id;
@@ -77,7 +79,7 @@ function showAction(id, event) {
 	}
 	OUTPUTID = id;
 			
-	moveObject('errortypes',event); 
+    //moveObject('errortypes',event); 
     return false;
 }
 

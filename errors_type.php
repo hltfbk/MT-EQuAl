@@ -61,7 +61,7 @@ while (list ($errID, $errARRAY) = each($errors)) {
 					$delicon = "<a href=\"javascript:removeAnnotation($id,$targetid,'".$tokenids[$r]."',$errID);\"><img src='img/delete.png' width=12></a>";
 				}
 			}
-			$annotations .= "- $delicon<div style='display: inline; font-size:17px' onmouseover=\"javascript:showRange(this,$targetid,'".$tokenids[$r]."');\" onmouseout=\"javascript:hideRange(this,$targetid,'".$tokenids[$r]."');\">&nbsp;";
+			$annotations .= "- $delicon<div style='display: inline; font-size:17px' onmouseover=\"javascript:showRange(this,$targetid,'".$tokenids[$r]."');\" onmouseout=\"javascript:hideRange(this,$targetid,'".$tokenids[$r]."');\"  onclick=\"javascript:goto($targetid,".preg_replace("/ .*/","",$tokenids[$r]).");\">&nbsp;";
 			if (trim($texts[$r]) == "") {
 				$annotations .= "<small>_SPACE_</small>";
 			} else {

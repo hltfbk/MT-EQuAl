@@ -109,7 +109,7 @@ function delSentences(taskid,type) {
 $errmsg="";
 $tasks = getTasks($mysession["userid"]);
     
-if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysession["status"] == "advisor")) {
+if (!empty($mysession["status"]) && ($mysession["status"] == "admin" || $mysession["status"] == "root")) {
   if (isset($taskid) && isset($tasks[$taskid])) {
   	  if (isset($action) && $action="remove") {
   		if (isAnnotatedTask($taskid) == 0) {

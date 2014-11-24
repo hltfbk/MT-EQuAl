@@ -33,6 +33,19 @@ function getColor (idx) {
 	return "#ccc";
 }
 
+function goto(el,interval) {
+	var leftEl = document.getElementById("LeftPane");
+	var tokenEl = document.getElementById(el+"."+interval);
+	
+	if (leftEl != null && tokenEl != null) {
+		if (tokenEl.offsetTop > 100) {
+			leftEl.scrollTop = tokenEl.offsetTop-100;
+		} else {
+			leftEl.scrollTop = 0;
+		}
+	}
+}
+
 function showRange(el,sentid,range) {
 	el.style.borderBottom = "solid #000 2px";
 	el.style.cursor = "nw-resize";
@@ -106,10 +119,9 @@ $(document).ready(function() {
 	try {
 		$(document).bind("contextmenu", function(e) {
 			e.preventDefault();
-			if (OUTPUTID != null && isSelected(OUTPUTID) == 1) {	
+			/*if (OUTPUTID != null && isSelected(OUTPUTID) == 1) {	
 				$("#errortypes").css({ top: (e.pageY-2) + "px", left: (e.pageX-20) + "px" }).show(100);
-			} 
-			/*else {
+			} else {
 				$("#noselection").css({top: (e.pageY-2) + "px", left: (e.pageX-20) + "px" }).show(100);
 				var el = document.getElementById("noselection");
     			el.style.visibility = "visible";

@@ -35,7 +35,7 @@ if (isset($ranges)) {
     	
     	$disable_edit="";
     	if (empty($warn)) {
-    		if (($obj["val"] == 0 || $obj["val"] == 1) && ($type == "errors" || $type == "wordaligner")) {
+    		if (($obj["val"] == 0 || $obj["val"] == 1) && ($type != "quality")) {
     			$disable_edit=" disabled='disabled'";
 				$tdcolor = " bgcolor='#FFE8BA'";
 				$warn = "<img src=\"img/lock_icon.png\" width=14 title=\"This value is mandatory for this task.\">";

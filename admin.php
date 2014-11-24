@@ -34,12 +34,19 @@ include("functions.php");
 <script>
 alertify.set({ buttonFocus: "cancel" });
 
-function exportTask	($format) {
-	var selectedTask = document.getElementById("taskselection" );
+function exportTask	(format, restrictedIDs) {
+	var selectedTask = document.getElementById("taskselection");
 	if (selectedTask != null) {
-		var $taskid = selectedTask.options[selectedTask.selectedIndex].value;
-		//alert("export.php?format="+$format+"&taskid="+$taskid);
-		window.open("export.php?format="+$format+"&taskid="+$taskid,"_self");
+		var taskid = selectedTask.options[selectedTask.selectedIndex].value;
+		if (format == "iob2" && restrictedIDs != '') {
+			var listIDs = restrictedIDs.split(" ");
+			if (listIDs.indexOf(taskid) < 0) {
+				alert("This export is available just for generic document annotation");
+				return;
+			}	
+		}
+		//alert("export.php?format="+format+"&taskid="+taskid);
+		window.open("export.php?format="+format+"&taskid="+taskid,"_self");
 	}
 }
 

@@ -26,15 +26,20 @@ if ($mysession["status"] != "root" && $mysession["status"] != "admin" && $mysess
 <div style='width: 100%; font-size: 14px'> Export 
 <select id=taskselection name='taskid'><option value='' disabled='disabled'>
 <?php
+$ttype = "";
+$docannIDs="";
 if (isset($mysession)) { 
 	$tasks = getTasks($mysession["userid"]);
 	
-	$ttype = "";
 	while (list ($tid,$tarr) = each($tasks)) {
 		if ($tarr[1] != $ttype) {
 			$ttype = $tarr[1];
 			print "<option value='' disabled='disabled'>--- ".ucfirst($ttype) ." tasks --- \n";
 		}
+		if ($ttype == "docann") {
+			$docannIDs .= " $tid";
+		}
+		
 		print "<option value='$tid'";
 		if (isset($id) && $id == $tid) {
 			print " selected";
@@ -45,9 +50,8 @@ if (isset($mysession)) {
 ?>
 </select>
 annotations:
-<button onclick="javascript:exportTask('csv');">CSV</button>
-<button onclick="javascript:exportTask('xml');">XML</button></a>
-<!-- <button onclick="javascript:exportTask('iob2');">IOB2</button></a> -->
+<button onclick="javascript:exportTask('csv','');">CSV</button>
+<button onclick="javascript:exportTask('xml','');">XML</button></a>
 <span style="display:none;" class="spinner"><img width=25 src="img/spinner.gif" valign=bottom></span>
 </div>
 </form>

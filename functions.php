@@ -286,7 +286,7 @@ function getErrors($sentence_num,$output_id,$user_id) {
 
 #count annotations for a target
 function countAnnotations($sentence_num,$output_id,$user_id) {
-	$query = "SELECT LENGTH(evalids) - LENGTH(REPLACE(evalids, ',', ''))+1 FROM annotation WHERE sentence_num=$sentence_num AND output_id=$output_id AND user_id=$user_id order by eval;";
+	$query = "SELECT LENGTH(evalids) - LENGTH(REPLACE(evalids,',',''))+1 FROM annotation WHERE sentence_num=$sentence_num AND output_id=$output_id AND user_id=$user_id order by eval;";
 	$result = safe_query($query);	
 	if (mysql_num_rows($result) > 0) {
 		$sum=0;
@@ -328,8 +328,8 @@ function copyAnnotations ($curruserid, $taskid, $fromuserid) {
 	
 function getAnnotatedTasks ($userid) { 
 	$hash = array();
-	#$query="select task_id,count(*) from annotation,sentence where annotation.sentence_num=sentence.num and user_id=$userid group by task_id order by task_id";
-	$query="select distinct task_id, count(*) from annotation left join sentence on annotation.sentence_num=sentence.num where user_id=$userid group by task_id";
+	#$query="select distinct task_id, count(*) from annotation left join sentence on annotation.sentence_num=sentence.num where user_id=$userid group by task_id";
+	$query="SELECT task_id,sum(LENGTH(evalids) - LENGTH(REPLACE(evalids, ',', ''))+1) FROM annotation LEFT JOIN sentence ON annotation.sentence_num=sentence.num WHERE user_id=$userid group by task_id";
 	$result = safe_query($query);	
 	if (mysql_num_rows($result) > 0) {
 		while ($row = mysql_fetch_row($result)) {
@@ -1394,6 +1394,135 @@ function saveXMLFile ($intDir, $taskid, $userid="") {
 	}
 }
 
+function saveIOB2File ($intDir, $taskid, $userid="") {
+	$taskinfo = getTaskInfo($taskid);	
+	$taskname=$taskinfo["name"];
+	$tasktype=$taskinfo["type"];
+	$taskranges = rangesJson2Array($taskinfo["ranges"]);
+	
+	$tasksyscount=countTaskSystem ($taskid);
+	$query_clause = "";
+	if (isset($userid) && $userid != "") {
+		$query_clause = "AND user_id=$userid";
+	}
+	
+	//count the number of annotators for the current task
+	$query = "select distinct user_id from annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE task_id=$taskid $query_clause";
+	$result_annotators = safe_query($query);
+	$annotators_count = mysql_num_rows($result_annotators);
+	#print "TASK: ". $taskid . " ($query) annotations:".$annotators_count."<br>";
+		
+	if ($annotators_count > 0) {	
+		//loop on users
+		while ($row = mysql_fetch_row($result_annotators)) {
+			$userid=$row[0];
+			$sentence_done = getDoneSentences($taskid,$userid);
+			$filecsv = $intDir.$taskname."_ann".$userid.".iob2";
+			$fh=fopen($filecsv,"w"); 
+			
+			//save comments
+			$comments = getComments($taskid,$userid);	
+			if (count($comments) > 0) {
+				$filecsv_comment = $intDir.$taskname."_comment".$userid.".csv";
+				$fh_comment=fopen($filecsv_comment,"w"); 
+				fwrite($fh_comment,"ID\ttype\tcomment\n");
+				while (list ($sentnum,$comment) = each($comments)) {
+					if (in_array($sentnum,$sentence_done)) {
+						fwrite($fh_comment,	str_replace("&quot;","\"",$comment)."\n");
+					}
+				}
+				fclose($fh_comment); 				
+			}
+			
+			$query = "SELECT output_id,id,type,eval,evalids,sentence_num FROM annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE user_id=".$userid." AND task_id=".$taskid." order by id,type,eval;";
+			$result_annotation = safe_query($query);
+			$last_id="";		
+			$tot_row = mysql_num_rows($result_annotation);
+			$num_row = 1;
+			$annotatedTokens = array();
+			while ($row_annotation = mysql_fetch_row($result_annotation)) {	
+				if ($num_row == $tot_row) {
+					$label = $taskranges[$row_annotation[3]][0];
+					$evalitems = preg_split("/,/", $row_annotation[4]);
+					foreach($evalitems as $item) {
+						$tokenitems = preg_split("/ /", $item);
+						for ($l = 0; $l < count($tokenitems); $l++) {
+							if ($l==0) {
+								if (isset($annotatedTokens{$tokenitems[$l]})) {
+									$annotatedTokens{$tokenitems[$l]} .= " B-".strtoupper(substr($label,0,3));
+								} else {
+									$annotatedTokens{$tokenitems[$l]} = " B-".strtoupper(substr($label,0,3));
+								}
+							} else {
+								if (isset($annotatedTokens{$tokenitems[$l]})) {
+									$annotatedTokens{$tokenitems[$l]} .= " I-".strtoupper(substr($label,0,3));
+								} else {
+									$annotatedTokens{$tokenitems[$l]} = "I-".strtoupper(substr($label,0,3));
+								}
+							}
+						} 
+					} 
+				}
+					
+				if ($last_id != $row_annotation[1] || $num_row == $tot_row) {
+					if (count($annotatedTokens) > 0) {
+						#get source data
+						$query = "SELECT lang,text,tokenization FROM sentence WHERE task_id=$taskid AND id='".$last_id."' AND type='source'";
+						$result_source = safe_query($query);
+						$row_source = mysql_fetch_row($result_source);
+				
+						$tokens = getTokens($row_source[0], $row_source[1], $row_source[2]);	
+						fwrite($fh, "# FILE: ".$last_id."\n");
+						
+						$i=1;
+						foreach ($tokens as $token) {
+							fwrite($fh,xml_escape($token)."\t");
+							if (isset($annotatedTokens{$i})) {
+								fwrite($fh,$annotatedTokens{$i}."\n");
+							} else {
+								fwrite($fh,"O\n");
+							}
+							$i++;
+						}
+						fwrite($fh,"\n\n");
+						$annotatedTokens = array();
+					}
+					$last_id = $row_annotation[1];
+				}
+				
+				if (!in_array($row_annotation[5],$sentence_done)) {
+					$annotatedTokens = array();
+					continue;
+				}
+			
+				$label = $taskranges[$row_annotation[3]][0];
+				$evalitems = preg_split("/,/", $row_annotation[4]);
+				foreach($evalitems as $item) {
+					$tokenitems = preg_split("/ /", $item);
+					for ($l = 0; $l < count($tokenitems); $l++) {
+						if ($l==0) {
+							if (isset($annotatedTokens{$tokenitems[$l]})) {
+								$annotatedTokens{$tokenitems[$l]} .= " B-".strtoupper(substr($label,0,3));
+							} else {
+								$annotatedTokens{$tokenitems[$l]} = " B-".strtoupper(substr($label,0,3));
+							}
+						} else {
+							if (isset($annotatedTokens{$tokenitems[$l]})) {
+								$annotatedTokens{$tokenitems[$l]} .= " I-".strtoupper(substr($label,0,3));
+							} else {
+								$annotatedTokens{$tokenitems[$l]} = "I-".strtoupper(substr($label,0,3));
+							}
+						}
+					} 
+				} 
+					
+				$num_row++;	
+			}
+		}	
+	}
+}
+
+
 function exportTaskCSV ($taskid) {
 	$intDir="/tmp";
 	if (!is_dir($intDir)) {
@@ -1509,11 +1638,35 @@ function exportTaskIOB2 ($taskid) {
 		mkdir($intDir, 0777);
 	}
 
-	$query = "select * from annotation LEFT JOIN sentence ON annotation.output_id=sentence.num WHERE task_id=$taskid";
-	$result = safe_query($query);
-	while ($row = mysql_fetch_row($result)) {
-		
-	}		
+	saveIOB2File($intDir, $taskid);
+	$filezip = "/tmp/mtequal-IOB2_$date.zip";
+	
+	$zip = new ZipArchive();
+	if($zip->open($filezip, ZIPARCHIVE::CREATE)!==TRUE){
+		print "ERROR! Sorry ZIP creation failed.";
+	}
+	$files= scandir($intDir);
+	//var_dump($files);
+	//unset($files[0],$files[1]);
+	foreach ($files as $file) {
+		#print "ADD to zip: $file<br>";
+		if ($file != "." && $file != "..") { 
+			if (isset($userid) && $userid != null) {
+				$zip->addFile($intDir.$file,"mtequal_IOB2_".$userid."-".$date."/".$file);
+			} else {
+  				$zip->addFile($intDir.$file,"mtequal_IOB2-".$date."/".$file);
+  			}
+  		}    
+	}
+	$zip->close();
+
+	if (file_exists($filezip)) {
+		#print $filezip . " (" . file_exists($filezip) .")";
+		readfile($filezip);
+		unlink($filezip);
+	}
+	deleteDirectory($intDir);
+	exit(0);	
 }
 
 function exportCSV ($userid) {
